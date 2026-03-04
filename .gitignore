@@ -8,11 +8,11 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
-
 # Native
 .kotlin/
 *.orig.*
 *.jks
+.env
 *.p8
 *.p12
 *.key
