@@ -12,7 +12,6 @@ export default function TabLayout() {
 
   const handleQuickAddSuccess = () => {
     // Có thể thêm logic refresh ở đây nếu cần
-    console.log("Invoice added successfully");
   };
 
   return (

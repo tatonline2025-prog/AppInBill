@@ -72,7 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (response) => response,
       async (error) => {
         if (error.response?.status === 401) {
-          console.log("Axios 401 detected. Token expired.");
           // Gọi hàm logout để vừa xóa storage, vừa update state, vừa redirect
           await logout();
         }
@@ -123,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(res.data.user);
       setIsAuthenticated(true);
     } catch (error) {
-      console.log("Auth failed:", error);
+      console.error("Auth failed:", error);
       await logout();
     } finally {
       setLoading(false);
@@ -134,7 +133,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (nextAppState === "active") {
-        console.log("App active - checking token...");
         refreshUser();
       }
     });

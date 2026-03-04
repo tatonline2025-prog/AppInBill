@@ -55,8 +55,7 @@ export function useAuth() {
       setIsAuthenticated(true);
       setError(null);
     } catch (err: any) {
-      console.log("Lỗi xác thực hoặc hết hạn token:", err);
-      
+      console.error("Lỗi xác thực hoặc hết hạn token:", err);
       // Xử lý các loại lỗi
       if (err.code === 'ECONNABORTED') {
         setError("Không thể kết nối server. Vui lòng kiểm tra kết nối mạng");

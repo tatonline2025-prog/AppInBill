@@ -69,13 +69,11 @@ export default function QuickAddInvoiceModal({
 
     try {
       setIsLoading(true);
-      const result = await quickAddInvoice({
+      await quickAddInvoice({
         invoiceNumber: invoiceNumber.trim(),
         customerName: customerName.trim(),
         totalAmount: Number(totalAmount),
       });
-
-      console.log("Kết quả thêm hóa đơn:", result);
       
       showMessage({
         message: "Thêm hóa đơn thành công!",

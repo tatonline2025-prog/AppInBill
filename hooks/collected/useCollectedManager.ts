@@ -188,7 +188,7 @@ export const useCollectedManager = (user: IUser | null) => {
       setTotalAmount(amount);
       setTotalInvoices(res.total);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       showMessage({ message: "Lỗi tải dữ liệu", type: "danger" });
     } finally {
       setIsLoading(false);

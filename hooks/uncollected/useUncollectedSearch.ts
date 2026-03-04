@@ -36,11 +36,6 @@ export const useUncollectedSearch = (user: IUser | null) => {
       try {
         setIsLoading(true);
 
-        console.log("=== DEBUG FETCH ALL PAID INVOICES ===");
-        console.log("isAdmin:", isAdmin);
-        console.log("user._id:", user?._id);
-        console.log("user.province:", user?.province);
-        
         // Xác định assignedUserId và province:
         // - Admin: KHÔNG truyền assignedUserId (xem tất cả)
         // - Admin: KHÔNG truyền province (xem tất cả các tỉnh)
@@ -48,9 +43,6 @@ export const useUncollectedSearch = (user: IUser | null) => {
         const assignedUserId = isAdmin ? undefined : (user?._id || undefined);
         const userProvince = isAdmin ? undefined : (user?.province || undefined);
 
-        console.log("assignedUserId (final):", assignedUserId);
-        console.log("userProvince (final):", userProvince);
-        console.log("pageToFetch:", pageToFetch);
 
         const res = await fetchAllPaidInvoices_API(
           assignedUserId,
@@ -59,11 +51,6 @@ export const useUncollectedSearch = (user: IUser | null) => {
           100
         );
 
-        console.log("=== API RESPONSE ===");
-        console.log("res:", res);
-        console.log("res type:", typeof res);
-        console.log("res.data:", res?.data);
-        console.log("Array.isArray(res?.data):", Array.isArray(res?.data));
 
         setIsLoading(false);
 
@@ -98,10 +85,6 @@ export const useUncollectedSearch = (user: IUser | null) => {
           }
         }
 
-        console.log("=== PROCESSED DATA ===");
-        console.log("newData length:", newData?.length);
-        console.log("total:", total);
-        console.log("totalAmountValue:", totalAmountValue);
 
         if (pageToFetch === 1) {
           setInvoiceData(newData);
@@ -155,14 +138,6 @@ export const useUncollectedSearch = (user: IUser | null) => {
         // User: Truyền province nếu có
         const userProvince = isAdmin ? undefined : (user?.province || undefined);
 
-        // Debug log
-        console.log("=== DEBUG SEARCH ===");
-        console.log("type:", type);
-        console.log("code:", code);
-        console.log("assignedUserId:", assignedUserId);
-        console.log("userProvince:", user?.province);
-        console.log("isPaidValue:", isPaidValue);
-        console.log("isAdmin:", isAdmin);
 
         if (type === "station") {
           const res = await searchInvoice_API(
@@ -176,7 +151,6 @@ export const useUncollectedSearch = (user: IUser | null) => {
             isPaidValue
           );
 
-          console.log("API Response (station):", res);
 
           if (res && Array.isArray(res.data)) {
             return {
@@ -202,7 +176,6 @@ export const useUncollectedSearch = (user: IUser | null) => {
           isPaidValue
         );
 
-        console.log("API Response:", res);
 
         if (res && Array.isArray(res.data)) {
           return {
@@ -270,14 +243,9 @@ export const useUncollectedSearch = (user: IUser | null) => {
   // Hàm xử lý khi toggle checkbox lọc isPaid
   // QUAN TRỌNG: Không cần phải có mã tìm kiếm
   const handleTogglePaidFilter = (value: boolean) => {
-    console.log("=== DEBUG TOGGLE PAID FILTER ===");
-    console.log("value received:", value);
-    console.log("current showPaidFilter:", showPaidFilter);
-    
     setShowPaidFilter(value);
 
     if (value) {
-      console.log("Calling fetchAllPaidInvoices...");
       // Khi bật checkbox → Lấy tất cả hóa đơn đã đóng cước (KHÔNG cần search)
       fetchAllPaidInvoices(1);
     } else {

@@ -91,8 +91,6 @@ export default function RootLayout() {
         const result = await inAppUpdates.checkNeedsUpdate();
 
         if (result.shouldUpdate) {
-          console.log("Update found, starting immediate update...");
-
           await inAppUpdates.startUpdate({
             updateType: IAUUpdateKind.IMMEDIATE,
           });
@@ -101,7 +99,7 @@ export default function RootLayout() {
           // Nếu code chạy xuống đây nghĩa là update đã bị hủy hoặc lỗi.
         }
       } catch (err) {
-        console.log("Update check error:", err);
+        console.error("Update check error:", err);
       } finally {
         // 3. Reset cờ sau khi xử lý xong (hoặc khi user hủy update)
         // Để lần sau AppState active thì mới check lại được
@@ -113,7 +111,6 @@ export default function RootLayout() {
 
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (nextAppState === "active") {
-        console.log("App moved to foreground, checking for update...");
         checkAndUpdate();
       }
     });

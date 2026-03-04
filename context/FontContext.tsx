@@ -11,9 +11,7 @@ interface FontContextType {
 
 const FontContext = createContext<FontContextType>({
   scale: 1,
-  changeScale: (val) => {
-    console.log("CẢNH BÁO: Đang gọi hàm mặc định! Chưa kết nối được Provider.", val);
-  },
+  changeScale: (_val) => {},
   calcSize: (size) => size,
 });
 
@@ -37,8 +35,6 @@ export const FontProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Hàm đổi cỡ chữ và lưu lại
   const changeScale = async (newScale: number) => {
-    console.log("Đã nhận lệnh đổi scale thành:", newScale);
-
     setScale(newScale);
     try {
       await AsyncStorage.setItem("user_font_scale", newScale.toString());
@@ -52,8 +48,6 @@ export const FontProvider = ({ children }: { children: React.ReactNode }) => {
   const calcSize = (size: number) => {
     return (size / PixelRatio.getFontScale()) * scale;
   };
-
-  console.log("--> FONT PROVIDER ĐANG KHỞI CHẠY! Scale hiện tại:", scale);
 
   return <FontContext.Provider value={{ scale, changeScale, calcSize }}>{children}</FontContext.Provider>;
 };
