@@ -3,15 +3,17 @@ import { IUser } from "@/types/user";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import Constants from "expo-constants";
-import { useSegments } from "expo-router";
 import { jwtDecode } from "jwt-decode";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { AppState } from "react-native";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 const BASE_URL = Constants.expoConfig?.extra?.appBill;
 
+// Xử lý graceful - không throw Error mà chỉ log cảnh báo
+if (!BASE_URL) {
+  console.warn("⚠️ BASE_URL chưa được cấu hình. Vui lòng cấu hình EXPO_PUBLIC_APP_BILL trong Expo secrets.");
+}
+
 // 1. Tạo instance API bên ngoài Component (Singleton Pattern)
-// Export ra để các màn hình khác (như collected, uncollected) có thể import và dùng
 export const api = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
@@ -33,6 +35,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   isAuthenticated: boolean;
+  error: string | null;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -48,8 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const segments = useSegments(); // Có thể giữ hoặc bỏ nếu không dùng
+  // Sử dụng ref để theo dõi trạng thái refresh
+  const isRefreshing = useRef(false);
 
   // --- HÀM LOGOUT ---
   const logout = useCallback(async () => {
@@ -59,94 +64,109 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error("Logout error", e);
     }
-    // Cập nhật State để UI phản hồi ngay lập tức
     setUser(null);
     setToken(null);
     setIsAuthenticated(false);
+    setError(null);
   }, []);
 
-  // --- SETUP AXIOS INTERCEPTOR ---
-  // Dùng useEffect để gắn interceptor một lần khi logout thay đổi
-  useEffect(() => {
-    const interceptor = api.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        if (error.response?.status === 401) {
-          // Gọi hàm logout để vừa xóa storage, vừa update state, vừa redirect
-          await logout();
-        }
-        return Promise.reject(error);
-      }
-    );
-
-    // Cleanup interceptor khi component unmount (tránh memory leak)
-    return () => {
-      api.interceptors.response.eject(interceptor);
-    };
-  }, [logout]);
-
+  // --- CHECK TOKEN EXPIRY ---
   const checkTokenExpiry = useCallback(async (storedToken: string) => {
     try {
       const decoded: any = jwtDecode(storedToken);
       const now = Date.now() / 1000;
-      return decoded.exp > now; // Trả về true nếu còn hạn
+      return decoded.exp > now;
     } catch (e) {
       return false;
     }
   }, []);
 
+  // --- REFRESH USER ---
   const refreshUser = useCallback(async () => {
-    try {
-      const storedToken = await AsyncStorage.getItem("token");
+    // Nếu đang trong quá trình refresh rồi thì không gọi lại
+    if (isRefreshing.current) {
+      return;
+    }
 
-      if (!storedToken) {
-        setUser(null);
-        setToken(null);
-        setIsAuthenticated(false);
+    try {
+      // Kiểm tra BASE_URL trước khi gọi API
+      if (!BASE_URL) {
+        console.log("BASE_URL not configured - skipping auth check");
         setLoading(false);
+        setIsAuthenticated(false);
         return;
       }
 
+      // Lấy token từ storage
+      const storedToken = await AsyncStorage.getItem("token");
+
+      if (!storedToken) {
+        setLoading(false);
+        setIsAuthenticated(false);
+        setUser(null);
+        setToken(null);
+        return;
+      }
+
+      // Kiểm tra token hết hạn cục bộ
       const isValid = await checkTokenExpiry(storedToken);
       if (!isValid) {
-        throw new Error("Token expired locally");
+        console.log("Token expired locally");
+        setLoading(false);
+        setIsAuthenticated(false);
+        return;
       }
 
       setToken(storedToken);
 
-      // QUAN TRỌNG: Dùng 'api' đã tạo ở trên, KHÔNG dùng 'axios' thường
-      const res = await api.get(`/api/auth/me`, {
-        headers: { Authorization: `Bearer ${storedToken}` },
-      });
+      // Gọi API để lấy thông tin user với timeout
+      try {
+        const res = await api.get(`/api/auth/me`, {
+          headers: { Authorization: `Bearer ${storedToken}` },
+          timeout: 5000, // 5 second timeout
+        });
 
-      setUser(res.data.user);
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error("Auth failed:", error);
-      await logout();
+        const userData = res.data?.user;
+        if (userData) {
+          setUser(userData);
+          setIsAuthenticated(true);
+          setError(null);
+        } else {
+          console.log("Invalid user data from server");
+          setIsAuthenticated(false);
+        }
+      } catch (apiError: any) {
+        console.log("API call failed:", apiError?.message || "Unknown error");
+        setIsAuthenticated(false);
+      }
+    } catch (err: any) {
+      console.error("Auth failed:", err?.message || err);
+      setIsAuthenticated(false);
+      setUser(null);
+      setToken(null);
     } finally {
       setLoading(false);
+      isRefreshing.current = false;
     }
-  }, [logout, checkTokenExpiry]);
+  }, [checkTokenExpiry]);
 
-  // --- APP STATE LISTENER ---
+  // Check lần đầu khi component mount
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
-      if (nextAppState === "active") {
-        refreshUser();
-      }
-    });
-    return () => subscription.remove();
-  }, [refreshUser]);
+    // Đặt loading = false sau 5 giây bất kể kết quả (fallback)
+    const timer = setTimeout(() => {
+      console.log("Auth check timeout - forcing loading=false");
+      setLoading(false);
+    }, 5000);
 
-  // Check lần đầu
-  useEffect(() => {
     refreshUser();
-  }, [refreshUser]);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, isAuthenticated, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, isAuthenticated, error, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
 }
+

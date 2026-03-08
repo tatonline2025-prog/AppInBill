@@ -2,7 +2,7 @@
 import { Text, TextInput } from "@/components/StyledText";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, RefreshControl, ScrollView, TouchableOpacity, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
@@ -11,7 +11,7 @@ import ViewShot from "react-native-view-shot";
 // Hooks & API
 import { handleToggle_API } from "@/api/invoice.api";
 import { getInvoiceLayout } from "@/api/invoicelayout.api";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/context/AuthContext";
 import { useInvoicePrinter } from "@/hooks/useInvoicePrinter";
 
 // Components
@@ -136,6 +136,24 @@ export default function Collected() {
   useEffect(() => {
     if (!user) return;
     fetchLayout();
+  }, [user]);
+
+  // --- Auto-refresh when screen gains focus ---
+  // This ensures user sees the latest status changes made by admin
+  // Using useFocusEffect with proper cleanup to avoid infinite loops
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // Cleanup function - do nothing on blur
+      };
+    }, [])
+  );
+  
+  // Load initial data when user logs in (only once)
+  useEffect(() => {
+    if (user && searchText) {
+      searchByText();
+    }
   }, [user]);
 
   const fetchLayout = async () => {

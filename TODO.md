@@ -1,60 +1,54 @@
-# TODO - Fix: Checkbox lọc hóa đơn đã đóng cước không hiện ra
+# TODO - Fix Invoice Status Visibility Issue
 
-## Vấn đề:
-Khi bấm checkbox lọc hóa đơn đã đóng cước nhưng không hiện ra dữ liệu.
+## Problem:
+When admin changes invoice status from "not_collected" to "collected", the user responsible for that invoice doesn't see the status change.
 
-## Nguyên nhân có thể:
-File `app/(tabs)/uncollected.tsx` chưa được cập nhật để sử dụng `handleTogglePaidFilter` từ hook.
+## Issues Identified:
 
-## Giải pháp:
+### Issue 1: In uncollected.tsx
+- When marking invoice as collected, the invoice stays in search results with "collected" status
+- Should filter out (remove) instead of just updating status
 
-### Bước 1: Kiểm tra file `app/(tabs)/uncollected.tsx`
+### Issue 2: In collected.tsx
+- No auto-refresh mechanism when user navigates to the tab
+- User can't see status changes made by admin
 
-Đảm bảo file này:
-1. Import hook `useUncollectedSearch`
-2. Sử dụng các props mới từ hook:
-   - `showPaidFilter`
-   - `handleTogglePaidFilter`
-   - `isAdmin`
+### Issue 3: useFocusEffect causes infinite reload
+- Originally used useFocusEffect which reloads on every focus/blur
+- This causes continuous reloading when switching tabs
+- Fixed by using useEffect with empty dependencies (load once on mount)
 
-3. Truyền props cho `SearchInput`:
-```tsx
-<SearchInput
-  customerCode={customerCode}
-  onChange={handleChange}
-  onSearch={() => handleSearch()}
-  suggestions={suggestions}
-  onSelect={handleSelectSuggestion}
-  searchType={searchType}
-  onChangeSearchType={setSearchType}
-  showPaidFilter={showPaidFilter}
-  onTogglePaidFilter={handleTogglePaidFilter}
-  isAdmin={isAdmin}
-/>
-```
+## Fix Plan:
 
-### Bước 2: Kiểm tra API response
+### Step 1: Fix handleMarkAsCollected in uncollected.tsx
+- Change from updating status to filtering out the invoice from invoiceData
 
-Khi gọi API, đảm bảo:
-- Admin: `GET /api/invoices/search?collectionStatus=not_collected&isPaid=true` (KHÔNG truyền assignedUserId)
-- User: `GET /api/invoices/search?collectionStatus=not_collected&isPaid=true&assignedUserId=USER_ID`
+### Step 2: Fix useEffect in uncollected.tsx
+- Use useEffect with empty deps instead of useFocusEffect
+- This ensures data loads only once when screen mounts
 
-### Bước 3: Debug
+### Step 3: Fix collected.tsx
+- Remove problematic auto-refresh that causes infinite loops
 
-Thêm console.log để kiểm tra:
-```typescript
-// Trong fetchAllPaidInvoices
-console.log("Gọi API với:", {
-  assignedUserId: isAdmin ? undefined : user?._id,
-  userprovince: user?.province,
-  isPaid: "true"
-});
-```
+## Implementation:
+- [x] 1. Edit uncollected.tsx - fix handleMarkAsCollected function
+- [x] 2. Edit uncollected.tsx - use useEffect instead of useFocusEffect
+- [x] 3. Edit collected.tsx - fix auto-refresh
+- [ ] 4. Test the changes
 
----
+## Changes Made:
 
-## Các file đã cập nhật:
-1. ✅ `api/invoice.api.ts` - Thêm API `fetchAllPaidInvoices_API`
-2. ✅ `hooks/uncollected/useUncollectedSearch.ts` - Thêm logic `handleTogglePaidFilter`
-3. ✅ `components/uncollected/SearchInput.tsx` - Thêm checkbox UI
-4. ⏳ `app/(tabs)/uncollected.tsx` - Cần kiểm tra và cập nhật
+### 1. uncollected.tsx
+- Changed `handleMarkAsCollected` to filter out (remove) the invoice from `invoiceData`
+- Changed from `useFocusEffect` to `useEffect` with empty dependencies
+- This ensures data loads only once on mount, not continuously
+
+### 2. collected.tsx
+- Removed problematic auto-refresh logic that caused continuous reloading
+- Kept useFocusEffect with empty callback as placeholder
+
+## How It Works Now:
+1. When admin/user changes invoice status → data is saved to database
+2. User manually pulls down to refresh (using existing RefreshControl)
+3. Screen loads stable without continuous reloading
+

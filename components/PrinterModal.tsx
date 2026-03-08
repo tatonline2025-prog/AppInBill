@@ -1,4 +1,5 @@
 import { Text } from "@/components/StyledText";
+import { InvoiceInfo } from "@/types/invoice";
 import React from "react";
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -13,7 +14,8 @@ interface PrinterModalProps {
   isScanning: boolean;
   onClose: () => void;
   onScan: () => void;
-  onSelectPrinter: (printer: PrinterDevice) => void;
+  onSelectPrinter: (printer: PrinterDevice, invoice?: InvoiceInfo | null) => void;
+  currentInvoice?: InvoiceInfo | null;
 }
 
 export default function PrinterModal({
@@ -23,6 +25,7 @@ export default function PrinterModal({
   onClose,
   onScan,
   onSelectPrinter,
+  currentInvoice,
 }: PrinterModalProps) {
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
@@ -46,7 +49,7 @@ export default function PrinterModal({
             {printers.map((printer, idx) => (
               <TouchableOpacity
                 key={printer.address}
-                onPress={() => onSelectPrinter(printer)}
+                onPress={() => onSelectPrinter(printer, currentInvoice)}
                 style={[styles.printerItem, { borderBottomWidth: idx !== printers.length - 1 ? 1 : 0 }]}
               >
                 <Text style={styles.printerName}>{printer.name}</Text>

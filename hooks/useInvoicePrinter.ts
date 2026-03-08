@@ -53,13 +53,24 @@ export const useInvoicePrinter = (
     printer: PrinterDevice | null,
     invoiceToPrint?: InvoiceInfo | null
   ) => {
+    // Ưu tiên: invoiceToPrint (nếu được truyền) > currentInvoice > targetInvoice
     const targetInvoice = invoiceToPrint || currentInvoice;
-    if (!targetInvoice) return;
+    
+    console.log("=== CONNECT AND PRINT ===");
+    console.log("printer:", printer?.name);
+    console.log("invoiceToPrint:", invoiceToPrint?._id);
+    console.log("currentInvoice:", currentInvoice?._id);
+    console.log("targetInvoice:", targetInvoice?._id);
+    
+    if (!targetInvoice) {
+      Alert.alert("Lỗi", "Không có hóa đơn để in. Vui lòng chọn hóa đơn trước.");
+      return;
+    }
 
     if (!printer?.address) {
       Alert.alert(
-        "Loi",
-        "Khong the ket noi voi may in. Hay dam bao may in da bat va da pair Bluetooth."
+        "Lỗi",
+        "Không thể kết nối với máy in. Hãy đảm bảo máy in đã bật và đã pair Bluetooth."
       );
       return;
     }
@@ -67,24 +78,31 @@ export const useInvoicePrinter = (
     let isConnected = false;
 
     try {
+      console.log("Connecting to printer:", printer.address);
       await BLEPrinter.connectPrinter(printer.address);
       isConnected = true;
+      console.log("Connected, generating bill image...");
 
       const base64Image = await generateBillImage(viewShotRef);
-      if (!base64Image) throw new Error("Khong the tao anh bill");
+      console.log("Base64 image generated, length:", base64Image?.length);
+      
+      if (!base64Image) throw new Error("Không thể tạo ảnh bill");
 
+      console.log("Printing image...");
       await BLEPrinter.printImageBase64(base64Image, { imageWidth: 384 });
-      showMessage({ message: "In hoa don thanh cong!", type: "success" });
+      console.log("Print completed!");
+      
+      showMessage({ message: "In hóa đơn thành công!", type: "success" });
     } catch (err: any) {
-      console.error("Loi in hoa don:", err);
-      const errorMsg = err?.message || "Da xay ra loi khong xac dinh khi in hoa don.";
-      Alert.alert("Loi", errorMsg);
+      console.error("Lỗi in hóa đơn:", err);
+      const errorMsg = err?.message || "Đã xảy ra lỗi không xác định khi in hóa đơn.";
+      Alert.alert("Lỗi", errorMsg);
     } finally {
       if (isConnected) {
         try {
           await BLEPrinter.closeConn();
         } catch (e) {
-          console.warn("Loi dong ket noi may in:", e);
+          console.warn("Lỗi đóng kết nối máy in:", e);
         }
       }
       setShowPrinterManager(false);
@@ -123,10 +141,12 @@ export const useInvoicePrinter = (
   return {
     handlePrintInvoice,
     updateInvoice,
+    currentInvoice,
     printerModalProps: {
       visible: showPrinterManager,
       printers: availablePrinters,
       isScanning,
+      currentInvoice,
       onClose: () => setShowPrinterManager(false),
       onScan: startScan,
       onSelectPrinter: connectAndPrint,

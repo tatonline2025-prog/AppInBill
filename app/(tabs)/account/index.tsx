@@ -1,8 +1,8 @@
 import { updateCollectionFee } from "@/api/user.api";
 import { DynamicNotiInvoiceLayout } from "@/components/InvoiceLayout";
 import { Text } from "@/components/StyledText";
+import { useAuth } from "@/context/AuthContext";
 import { useFont } from "@/context/FontContext";
-import { useAuth } from "@/hooks/useAuth";
 import { InvoiceLayoutItem } from "@/types/invoice-layout";
 import { MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";

@@ -7,8 +7,8 @@ import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
 
-import { useAuth } from "@/hooks/useAuth";
-// import { useAuth } from "@/context/AuthContext";
+// Sử dụng useAuth từ Context
+import { useAuth } from "@/context/AuthContext";
 
 const REMEMBER_ME_KEY = "rememberMe";
 const SAVED_USERNAME_KEY = "savedUsername";
@@ -81,6 +81,7 @@ export default function Login() {
         await AsyncStorage.setItem("token", res.data.token);
         await AsyncStorage.setItem("user", JSON.stringify(res.data.user));
 
+        // Đợi refreshUser hoàn thành trước khi redirect
         await refreshUser();
 
         router.replace("/(tabs)/uncollected");

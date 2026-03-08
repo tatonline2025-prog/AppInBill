@@ -16,6 +16,8 @@ export const DEFAULT_INVOICE_LAYOUT: InvoiceLayoutItem[] = [
   { id: "currentAmount", label: "Kỳ này", visible: true },
   { id: "previousAmount", label: "Kỳ trước", visible: true },
   { id: "totalAmountNumber", label: "Tổng tiền", visible: true },
+  { id: "collectionFee", label: "Phí dịch vụ", visible: true },
+  { id: "totalCollection", label: "Tổng cộng", visible: true },
   { id: "totalAmountWords", label: "Bằng chữ", visible: true },
   { id: "collectorSeparator", label: "*****", visible: true },
   { id: "collectorName", label: "Người thu", visible: true },

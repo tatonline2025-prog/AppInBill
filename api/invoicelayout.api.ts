@@ -34,7 +34,13 @@ export const saveInvoiceLayout = async (layoutID: string, layout: InvoiceLayoutI
 
 export const getInvoiceLayout = async () => {
   try {
-    const res = await axios.get(`${BASE_URL}/api/invoiceslayout/get`);
+    const token = await AsyncStorage.getItem("token");
+    
+    const res = await axios.get(`${BASE_URL}/api/invoiceslayout/get`, {
+      headers: token ? {
+        Authorization: `Bearer ${token}`,
+      } : {},
+    });
 
     if (!res.data || !Array.isArray(res.data)) {
       throw new Error("Response dữ liệu không hợp lệ");

@@ -1,6 +1,6 @@
 // --- File: app/(tabs)/uncollected.tsx ---
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, RefreshControl, ScrollView } from "react-native";
 import { showMessage } from "react-native-flash-message";
@@ -16,9 +16,9 @@ import SearchInput from "@/components/uncollected/SearchInput";
 // --- Import Hooks ---
 import InvoiceList from "@/components/uncollected/InvoiceList";
 import TopStationsList, { StationSummary } from "@/components/uncollected/TopStationsList";
+import { useAuth } from "@/context/AuthContext";
 import { useInvoiceLayout } from "@/hooks/uncollected/useInvoiceLayout";
 import { useUncollectedSearch } from "@/hooks/uncollected/useUncollectedSearch";
-import { useAuth } from "@/hooks/useAuth";
 import { useInvoicePrinter } from "@/hooks/useInvoicePrinter";
 import { InvoiceInfo } from "@/types/invoice";
 
@@ -124,12 +124,12 @@ export default function Uncollected() {
     [setInvoice, isSearch, customerCode, searchType, handleSearch, setInvoiceData]
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchUncollectedData();
-      fetchTop3StationsByRevenue();
-    }, [fetchUncollectedData, fetchTop3StationsByRevenue])
-  );
+  // Chỉ load dữ liệu một lần khi màn hình được mount
+  // Không dùng useFocusEffect vì sẽ gây reload liên tục khi chuyển tab
+  useEffect(() => {
+    fetchUncollectedData();
+    fetchTop3StationsByRevenue();
+  }, [fetchUncollectedData, fetchTop3StationsByRevenue]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -174,10 +174,11 @@ export default function Uncollected() {
             };
             setInvoice(updatedInvoice);
 
-            // Cập nhật trong danh sách invoiceData nếu đang tìm kiếm
+            // Lọc bỏ hóa đơn đã thu khỏi danh sách invoiceData (thay vì chỉ cập nhật trạng thái)
+            // Điều này đảm bảo hóa đơn không còn hiển thị trong danh sách chưa thu
             if (isSearch && setInvoiceData && invoiceData) {
               setInvoiceData((prevList) =>
-                prevList.map((item) => (item._id === targetInvoice._id ? updatedInvoice : item))
+                prevList.filter((item) => item._id !== targetInvoice._id)
               );
             }
 

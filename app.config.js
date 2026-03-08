@@ -83,7 +83,7 @@ export default {
         projectId: "81f667c4-1484-4c1c-bd8c-72c27dda1871",
       },
       //appBill: "https://hoadon.dvtienich.vn",
-      appBill: "http://10.0.2.2:5000",
+      appBill: "http://10.0.2.2:3000",
     },
     runtimeVersion: {
       policy: "appVersion",  

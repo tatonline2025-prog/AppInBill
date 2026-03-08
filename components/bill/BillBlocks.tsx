@@ -307,22 +307,26 @@ export const BillNote = ({ label }: { label: string }) => {
 
 export const BillCollectionFee = ({ invoice, label }: { invoice: InvoiceInfo | null; label: string }) => {
   const fee = Number(invoice?.assignedTo?.collectionFee) || 0;
-  if (fee === 0) return null;
+  // Chỉ hiển thị khi fee > 0
+  if (!fee || fee <= 0) return null;
 
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 1, alignItems: "flex-start" }}>
       <BillText>{label}:</BillText>
       <BillText style={{ fontFamily: "NotoSans-Regular", flex: 1, textAlign: "right" }}>
-        {fee.toLocaleString("vi-VN") || 0} VND
+        {fee.toLocaleString("vi-VN")} VND
       </BillText>
     </View>
   );
 };
 
+
+
 export const BillTotalCollection = ({ invoice, label }: { invoice: InvoiceInfo | null; label: string }) => {
   const fee = Number(invoice?.assignedTo?.collectionFee) || 0;
   const total = Number(invoice?.totalAmount) || 0;
-  if (fee === 0) return null;
+  // Chỉ hiển thị khi fee > 0
+  if (!fee || fee <= 0) return null;
 
   const combined = total + fee;
 
@@ -330,7 +334,7 @@ export const BillTotalCollection = ({ invoice, label }: { invoice: InvoiceInfo |
     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 1, alignItems: "flex-start" }}>
       <BillText style={{ fontFamily: "NotoSans-Bold" }}>{label}:</BillText>
       <BillText style={{ fontFamily: "NotoSans-Bold", flex: 1, textAlign: "right" }}>
-        {combined.toLocaleString("vi-VN") || 0} VND
+        {combined.toLocaleString("vi-VN")} VND
       </BillText>
     </View>
   );
