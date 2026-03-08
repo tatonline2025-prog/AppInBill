@@ -118,18 +118,22 @@ export const DynamicInvoiceLayout = ({
     return BlockMap[block.id] || null;
   };
 
+  // Quan trọng: Sử dụng visibility: hidden thay vì opacity: 0 để ViewShot có thể capture
+  // opacity: 0 sẽ không được render bởi React Native ViewShot
   const dynamicViewShotStyle = {
     backgroundColor: "#fff",
     width: viewShotWidthInDp,
+    minHeight: 200, // Đảm bảo có chiều cao tối thiểu
     ...(visible
       ? { opacity: 1, position: "relative" as const }
       : {
           position: "absolute" as const,
           top: 0,
           left: 0,
-          opacity: 0,
-          pointerEvents: "none" as const,
-          zIndex: -999,
+          // Sử dụng width/height cố định nhỏ thay vì 0 để đảm bảo render
+          width: 1,
+          height: 1,
+          overflow: "hidden" as const,
         }),
   };
 
@@ -143,11 +147,11 @@ export const DynamicInvoiceLayout = ({
 
   return (
     <ViewShot
-      {...(forwardedRef ? { ref: forwardedRef } : {})}
-      options={{ format: "png", quality: 1 }}
+      ref={forwardedRef}
+      options={{ format: "png", quality: 1, snapshotContentContainer: true }}
       style={dynamicViewShotStyle}
     >
-      <View style={dynamicBillContainerStyle}>
+      <View style={dynamicBillContainerStyle} collapsable={false}>
         {layout.map((block) => (
           <React.Fragment key={block.id}>{renderBillBlock(block)}</React.Fragment>
         ))}
@@ -211,18 +215,21 @@ export const DynamicNotiInvoiceLayout = ({
     return BlockMap[block.id] || null;
   };
 
+  // Quan trọng: Sử dụng width/height cố định nhỏ thay vì opacity: 0 để ViewShot có thể capture
   const dynamicViewShotStyle = {
     backgroundColor: "#fff",
     width: viewShotWidthInDp,
+    minHeight: 200, // Đảm bảo có chiều cao tối thiểu
     ...(visible
       ? { opacity: 1, position: "relative" as const }
       : {
           position: "absolute" as const,
           top: 0,
           left: 0,
-          opacity: 0,
-          pointerEvents: "none" as const,
-          zIndex: -999,
+          // Sử dụng width/height cố định nhỏ thay vì 0 để đảm bảo render
+          width: 1,
+          height: 1,
+          overflow: "hidden" as const,
         }),
   };
 
@@ -236,11 +243,11 @@ export const DynamicNotiInvoiceLayout = ({
 
   return (
     <ViewShot
-      {...(forwardedRef ? { ref: forwardedRef } : {})}
-      options={{ format: "png", quality: 1 }}
+      ref={forwardedRef}
+      options={{ format: "png", quality: 1, snapshotContentContainer: true }}
       style={dynamicViewShotStyle}
     >
-      <View style={dynamicBillContainerStyle}>
+      <View style={dynamicBillContainerStyle} collapsable={false}>
         {layout.map((block) => (
           <React.Fragment key={block.id}>{renderBillBlock(block)}</React.Fragment>
         ))}

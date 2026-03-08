@@ -221,8 +221,16 @@ export default function Collected() {
   };
 
   const handlePrintWithLatestLayout = async () => {
-    await fetchLayout();
-    setTimeout(() => handlePrintInvoice(), 300);
+    try {
+      await fetchLayout();
+      // Đợi layout render xong
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // Gọi hàm in
+      await handlePrintInvoice();
+    } catch (error) {
+      console.error("Lỗi in:", error);
+      Alert.alert("Lỗi", "Không thể in hóa đơn.");
+    }
   };
 
   const handleToggleInvoice = useCallback((item: InvoiceInfo) => {
