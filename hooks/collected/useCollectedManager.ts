@@ -56,7 +56,9 @@ export const useCollectedManager = (user: IUser | null) => {
     }, 200);
 
     return () => clearTimeout(timeout);
-  }, [searchText, searchType, user, selectedDate]);
+    // ✅ Bỏ selectedDate khỏi dependency array vì nó thay đổi liên tục khi chọn ngày
+    // Chỉ trigger lại khi searchText hoặc searchType hoặc user thay đổi
+  }, [searchText, searchType, user]);
 
   const handleTextChange = (text: string) => {
     setSearchText(text);

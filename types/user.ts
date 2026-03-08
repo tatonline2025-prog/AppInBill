@@ -6,7 +6,7 @@ export interface IUser {
   email: string;
   role: "admin" | "user";
   province: string;
-  collectionFee: string;
+  collectionFee: number; // ✅ Đổi từ string sang number
   createdAt: string; // Hoặc Date nếu bạn parse nó
   updatedAt: string; // Hoặc Date
 }

@@ -215,7 +215,7 @@ export default function InvoiceDetail({
         <InfoRow label="Kỳ" value={invoice.billing_period} />
         
         {/* Hiển thị phí dịch vụ và tổng cộng nếu collectionFee > 0 */}
-        {invoice.assignedTo?.collectionFee > 0 && (
+        {(invoice.assignedTo?.collectionFee ?? 0) > 0 && (
           <>
             <InfoRow
               label="Phí dịch vụ"

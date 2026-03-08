@@ -1,22 +1,17 @@
 // context/AuthContext.tsx
+import { API_TIMEOUT, BASE_URL } from "@/config";
 import { IUser } from "@/types/user";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import Constants from "expo-constants";
 import { jwtDecode } from "jwt-decode";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
-const BASE_URL = Constants.expoConfig?.extra?.appBill;
-
-// Xử lý graceful - không throw Error mà chỉ log cảnh báo
-if (!BASE_URL) {
-  console.warn("⚠️ BASE_URL chưa được cấu hình. Vui lòng cấu hình EXPO_PUBLIC_APP_BILL trong Expo secrets.");
-}
+// ✅ Sử dụng BASE_URL từ file config chung
 
 // 1. Tạo instance API bên ngoài Component (Singleton Pattern)
 export const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: API_TIMEOUT,
 });
 
 api.interceptors.request.use(

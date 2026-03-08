@@ -28,6 +28,7 @@ export const useUncollectedSearch = (user: IUser | null) => {
 
   const isSelectionRef = useRef(false);
 
+  // ✅ isAdmin được sử dụng trong hook này để phân quyền xem hóa đơn
   const isAdmin = user?.role === "admin";
 
   // --- 1. Hàm gọi API lấy tất cả hóa đơn đã đóng cước ---

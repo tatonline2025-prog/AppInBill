@@ -1,8 +1,8 @@
+import { API_TIMEOUT, BASE_URL } from "@/config";
 import { IUserResponse } from "@/types/user";
 import axios, { AxiosError } from "axios";
-import Constants from "expo-constants";
 
-const BASE_URL = Constants.expoConfig?.extra?.appBill;
+// ✅ Sử dụng BASE_URL từ file config chung
 
 export const login = async (userName: string, password: string) => {
   if (!BASE_URL) {
@@ -14,7 +14,7 @@ export const login = async (userName: string, password: string) => {
       userName,
       password,
     }, {
-      timeout: 15000,
+      timeout: API_TIMEOUT,
     });
 
     return res;

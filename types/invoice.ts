@@ -1,3 +1,12 @@
+// Interface cho thông tin user được giao
+export interface AssignedToInfo {
+  email?: string;
+  fullName?: string;
+  phone?: string;
+  collectionFee?: number;
+  _id?: string;
+}
+
 export interface InvoiceInfo {
   _id: string;
   billing_period: string;
@@ -13,13 +22,7 @@ export interface InvoiceInfo {
   currentAmount: number | null;
   previousAmount: number | null;
   recordBookCode: string | null;
-  assignedTo: {
-    email: string;
-    fullName: string;
-    phone: string;
-    collectionFee: number;
-    _id: string;
-  };
+  assignedTo: AssignedToInfo | null;
 
   readingSession: string | null;
   meterNumber: string | null;

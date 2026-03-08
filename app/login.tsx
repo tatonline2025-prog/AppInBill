@@ -12,7 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 
 const REMEMBER_ME_KEY = "rememberMe";
 const SAVED_USERNAME_KEY = "savedUsername";
-const SAVED_PASSWORD_KEY = "savedPassword";
+// ✅ Đã xóa SAVED_PASSWORD_KEY vì lưu mật khẩu vào AsyncStorage là không an toàn
 
 export default function Login() {
   const router = useRouter();
@@ -27,13 +27,12 @@ export default function Login() {
   useEffect(() => {
     const loadSavedCredentials = async () => {
       try {
+        // ✅ Chỉ load username, KHÔNG load password vì lý do bảo mật
         const storedUsername = await AsyncStorage.getItem(SAVED_USERNAME_KEY);
-        const storedPassword = await AsyncStorage.getItem(SAVED_PASSWORD_KEY);
         const storedRememberMe = await AsyncStorage.getItem(REMEMBER_ME_KEY);
 
-        if (storedRememberMe === "true" && storedUsername && storedPassword) {
+        if (storedRememberMe === "true" && storedUsername) {
           setUsername(storedUsername);
-          setPassword(storedPassword);
           setRememberMe(true);
         }
       } catch (e) {
@@ -60,14 +59,12 @@ export default function Login() {
       if (res?.status === 200 && res?.data) {
         // Lưu/Xóa thông tin Remember Me sau khi đăng nhập thành công ---
         if (rememberMe) {
-          // Lưu tên đăng nhập, mật khẩu và trạng thái nhớ
+          // ✅ Chỉ lưu username, KHÔNG lưu password vì lý do bảo mật
           await AsyncStorage.setItem(SAVED_USERNAME_KEY, username.trim());
-          await AsyncStorage.setItem(SAVED_PASSWORD_KEY, password.trim());
           await AsyncStorage.setItem(REMEMBER_ME_KEY, "true");
         } else {
           // Xóa thông tin đã lưu nếu người dùng bỏ chọn
           await AsyncStorage.removeItem(SAVED_USERNAME_KEY);
-          await AsyncStorage.removeItem(SAVED_PASSWORD_KEY);
           await AsyncStorage.setItem(REMEMBER_ME_KEY, "false"); // Set trạng thái là false
         }
         // ----------------------------------------------------------------------
