@@ -12,11 +12,11 @@ interface PrinterDevice {
   address: string;
 }
 
-// Timeout khi quét máy in (ms)
+// Timeout when scanning for printers (ms)
 const SCAN_TIMEOUT = 5000;
-// Timeout khi tạo ảnh (ms)
+// Timeout when generating image (ms)
 const IMAGE_GENERATION_TIMEOUT = 8000;
-// Timeout khi in (ms)
+// Timeout when printing (ms)
 const PRINT_TIMEOUT = 15000;
 
 export const useInvoicePrinter = (
@@ -31,6 +31,9 @@ export const useInvoicePrinter = (
 
   // Use ref to track if component is mounted
   const isMountedRef = useRef(true);
+  
+  // Ref to track if currently processing print
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -43,7 +46,7 @@ export const useInvoicePrinter = (
     if (invoice) setCurrentInvoice(invoice);
   }, [invoice]);
 
-  // Hàm timeout helper
+  // Timeout helper function
   const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> => {
     return Promise.race([
       promise,
@@ -58,14 +61,14 @@ export const useInvoicePrinter = (
     setIsScanning(true);
 
     try {
-      // Kiểm tra quyền Bluetooth trước khi quét
+      // Check Bluetooth permissions before scanning
       const hasPermission = await requestBluetoothPermissions();
       if (!hasPermission) {
         setIsScanning(false);
         return;
       }
 
-      // Kiểm tra Bluetooth đã bật chưa
+      // Check if Bluetooth is enabled
       const btEnabled = await isBluetoothEnabled();
       if (!btEnabled) {
         Alert.alert(
@@ -78,17 +81,17 @@ export const useInvoicePrinter = (
 
       console.log("Bắt đầu quét máy in...");
 
-      // Khởi tạo BLE Printer
+      // Initialize BLE Printer
       try {
         await BLEPrinter.init();
       } catch (initErr) {
         console.error("Lỗi khởi tạo BLEPrinter:", initErr);
-        // Thử init lại
+        // Try init again
         await new Promise(resolve => setTimeout(resolve, 500));
         await BLEPrinter.init();
       }
 
-      // Quét máy in với timeout
+      // Scan for printers with timeout
       const devices: any = await withTimeout(
         BLEPrinter.getDeviceList(),
         SCAN_TIMEOUT,
@@ -108,11 +111,11 @@ export const useInvoicePrinter = (
 
       console.log("Tìm thấy", devices.length, "thiết bị");
 
-      // Map thiết bị
+      // Map devices
       const mappedDevices: PrinterDevice[] = devices.map((d: any) => ({
         name: d.device_name || d.name || "Máy in không tên",
         address: d.inner_mac_address || d.macAddress || d.address,
-      })).filter((d: PrinterDevice) => d.address); // Lọc bỏ thiết bị không có địa chỉ
+      })).filter((d: PrinterDevice) => d.address);
 
       console.log("Danh sách máy in:", mappedDevices);
       setAvailablePrinters(mappedDevices);
@@ -122,7 +125,6 @@ export const useInvoicePrinter = (
       
       if (!isMountedRef.current) return;
 
-      // Hiển thị thông báo lỗi chi tiết hơn
       const errorMessage = err?.message || "Không thể tìm kiếm máy in. Vui lòng thử lại.";
       
       if (errorMessage.includes("timeout")) {
@@ -139,21 +141,17 @@ export const useInvoicePrinter = (
     }
   };
 
-  // Hàm in với Promise wrapper vì thư viện trả về void
+  // Print function with Promise wrapper since library returns void
   const printImage = (base64Image: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
-        // Gọi hàm in - ép kiểu sang any vì thư viện trả về void nhưng thực tế có thể có callback
         const result = (BLEPrinter as any).printImageBase64(base64Image, { imageWidth: 384 });
         
-        // Nếu trả về Promise (trong một số phiên bản)
         if (result && typeof result.then === 'function') {
           result
             .then(resolve)
             .catch(reject);
         } else {
-          // Nếu không trả về gì, coi như thành công sau một khoảng thời gian
-          // Đây là fallback vì thư viện trả về void
           setTimeout(() => {
             console.log("In hoàn tất (timeout-based)");
             resolve();
@@ -169,7 +167,6 @@ export const useInvoicePrinter = (
     printer: PrinterDevice | null,
     invoiceToPrint?: InvoiceInfo | null
   ) => {
-    // Ưu tiên: invoiceToPrint (nếu được truyền) > currentInvoice > targetInvoice
     const targetInvoice = invoiceToPrint || currentInvoice;
     
     console.log("=== CONNECT AND PRINT ===");
@@ -196,7 +193,7 @@ export const useInvoicePrinter = (
     let isConnected = false;
 
     try {
-      // Bước 1: Kết nối máy in
+      // Step 1: Connect to printer
       console.log("Đang kết nối đến máy in:", printer.address);
       
       await withTimeout(
@@ -208,10 +205,10 @@ export const useInvoicePrinter = (
       isConnected = true;
       console.log("Đã kết nối, đang tạo ảnh bill...");
 
-      // Đợi một chút để kết nối ổn định
+      // Wait for connection to stabilize
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Bước 2: Tạo ảnh từ bill
+      // Step 2: Generate image from bill
       const base64Image = await withTimeout(
         generateBillImage(viewShotRef),
         IMAGE_GENERATION_TIMEOUT,
@@ -224,7 +221,7 @@ export const useInvoicePrinter = (
         throw new Error("Không thể tạo ảnh bill. Vui lòng thử lại.");
       }
 
-      // Bước 3: In ảnh
+      // Step 3: Print image
       console.log("Đang in ảnh...");
       
       try {
@@ -236,7 +233,6 @@ export const useInvoicePrinter = (
         console.log("In thành công!");
         showMessage({ message: "In hóa đơn thành công!", type: "success" });
       } catch (printErr: any) {
-        // Thử in lại một lần nữa nếu lỗi
         console.log("In lần đầu thất bại, thử lại...");
         await new Promise(resolve => setTimeout(resolve, 1000));
         
@@ -258,7 +254,6 @@ export const useInvoicePrinter = (
       
       const errorMsg = err?.message || "Đã xảy ra lỗi không xác định khi in hóa đơn.";
       
-      // Phân loại lỗi để hiển thị thông báo phù hợp
       if (errorMsg.includes("timeout")) {
         Alert.alert("Lỗi in", "In mất quá nhiều thời gian. Vui lòng kiểm tra máy in và thử lại.");
       } else if (errorMsg.includes("connection") || errorMsg.includes("kết nối")) {
@@ -269,7 +264,7 @@ export const useInvoicePrinter = (
         Alert.alert("Lỗi in hóa đơn", errorMsg);
       }
     } finally {
-      // Đóng kết nối
+      // Close connection
       if (isConnected) {
         try {
           console.log("Đóng kết nối máy in...");
@@ -288,58 +283,83 @@ export const useInvoicePrinter = (
   };
 
   const handlePrintInvoice = async (invoiceToPrint?: InvoiceInfo | null) => {
+    // Prevent multiple simultaneous calls
+    if (isProcessingRef.current) {
+      console.log(">>> handlePrintInvoice: Already processing, ignoring duplicate call");
+      return;
+    }
+    
     const targetInvoice = invoiceToPrint || currentInvoice;
     if (!targetInvoice) {
       Alert.alert("Chưa có hóa đơn", "Vui lòng tìm hóa đơn trước khi in.");
       return;
     }
 
-    // Bước 1: Kiểm tra quyền Bluetooth trước
-    console.log("Đang kiểm tra quyền Bluetooth...");
-    const hasPermission = await requestBluetoothPermissions();
-    if (!hasPermission) {
-      console.log("Người dùng chưa cấp quyền Bluetooth");
-      return;
-    }
-    console.log("Đã có quyền Bluetooth");
-
-    // Bước 2: Kiểm tra Bluetooth đã bật chưa
-    console.log("Đang kiểm tra Bluetooth...");
-    const btEnabled = await isBluetoothEnabled();
-    if (!btEnabled) {
-      Alert.alert(
-        "Bluetooth chưa bật",
-        "Vui lòng bật Bluetooth để in hóa đơn."
-      );
-      console.log("Bluetooth chưa bật");
-      return;
-    }
-    console.log("Bluetooth đã bật");
-
-    // Bước 3: Khởi tạo BLE Printer
-    console.log("Đang khởi tạo BLE Printer...");
+    // Mark as processing
+    isProcessingRef.current = true;
+    console.log(">>> handlePrintInvoice: Starting, invoiceId:", targetInvoice._id);
+    
     try {
-      await BLEPrinter.init();
-      console.log("BLE Printer đã khởi tạo");
-    } catch (err) {
-      console.error("Lỗi khởi tạo BLEPrinter:", err);
-      
-      // Thử init lại sau khi chờ
-      await new Promise(resolve => setTimeout(resolve, 500));
-      try {
-        await BLEPrinter.init();
-        console.log("BLE Printer init lần 2 thành công");
-      } catch (retryErr) {
-        console.error("Lỗi retry khởi tạo BLEPrinter:", retryErr);
-        Alert.alert("Lỗi", "Không thể khởi tạo Bluetooth. Vui lòng thử lại.");
+      // Step 1: Check Bluetooth permissions
+      console.log(">>> Step 1: Checking Bluetooth permissions...");
+      const hasPermission = await requestBluetoothPermissions();
+      if (!hasPermission) {
+        console.log(">>> User did not grant Bluetooth permission");
+        isProcessingRef.current = false;
         return;
       }
-    }
+      console.log(">>> Step 1: Bluetooth permission granted");
 
-    // Bước 4: Cập nhật invoice và hiển thị modal
-    console.log("Hiển thị modal chọn máy in");
-    setCurrentInvoice(targetInvoice);
-    setShowPrinterManager(true);
+      // Step 2: Check if Bluetooth is enabled
+      console.log(">>> Step 2: Checking if Bluetooth is enabled...");
+      const btEnabled = await isBluetoothEnabled();
+      if (!btEnabled) {
+        Alert.alert(
+          "Bluetooth chưa bật",
+          "Vui lòng bật Bluetooth để in hóa đơn."
+        );
+        console.log(">>> Step 2: Bluetooth is not enabled");
+        isProcessingRef.current = false;
+        return;
+      }
+      console.log(">>> Step 2: Bluetooth is enabled");
+
+      // Step 3: Initialize BLE Printer
+      console.log(">>> Step 3: Initializing BLE Printer...");
+      try {
+        await BLEPrinter.init();
+        console.log(">>> Step 3: BLE Printer initialized successfully");
+      } catch (err: any) {
+        console.error(">>> Step 3: BLEPrinter init error:", err);
+        
+        // Try init again after waiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+          await BLEPrinter.init();
+          console.log(">>> Step 3: BLE Printer init retry successful");
+        } catch (retryErr: any) {
+          console.error(">>> Step 3: BLEPrinter init retry error:", retryErr);
+          Alert.alert(
+            "Lỗi khởi tạo máy in", 
+            "Không thể khởi tạo Bluetooth. Vui lòng thử lại.\n\nChi tiết: " + (retryErr?.message || "Lỗi không xác định")
+          );
+          isProcessingRef.current = false;
+          return;
+        }
+      }
+
+      // Step 4: Update invoice and show modal
+      console.log(">>> Step 4: Showing printer selection modal");
+      setCurrentInvoice(targetInvoice);
+      setShowPrinterManager(true);
+      
+      console.log(">>> handlePrintInvoice: Completed successfully, modal should be visible");
+      
+    } catch (error) {
+      console.error(">>> handlePrintInvoice: Unexpected error:", error);
+      Alert.alert("Lỗi", "Đã xảy ra lỗi không xác định.");
+      isProcessingRef.current = false;
+    }
   };
 
   return {

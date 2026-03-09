@@ -1,42 +1,41 @@
 import { Alert, Linking, PermissionsAndroid, Platform } from "react-native";
 
 /**
- * Lưu trữ trạng thái Bluetooth đã bật hay chưa
- * Sử dụng cached value thay vì thư viện bên ngoài
+ * Yêu cầu quyền Bluetooth và kiểm tra trạng thái Bluetooth
+ * @returns true nếu có đủ quyền, false nếu không
  */
-let cachedBluetoothState: boolean | null = null;
-
 export async function requestBluetoothPermissions(): Promise<boolean> {
-  if (Platform.OS !== "android") return true;
+  console.log(">>> requestBluetoothPermissions START");
+  
+  if (Platform.OS !== "android") {
+    console.log(">>> requestBluetoothPermissions: Not Android, return true");
+    return true;
+  }
 
   try {
-    // Bước 1: Kiểm tra Bluetooth đã bật chưa (sử dụng phương pháp thủ công)
-    const btEnabled = await isBluetoothEnabled();
-    if (!btEnabled) {
-      Alert.alert(
-        "Bluetooth chưa bật",
-        "Vui lòng bật Bluetooth để có thể kết nối máy in.",
-        [
-          { text: "Hủy", style: "cancel" },
-          { 
-            text: "Mở Bluetooth", 
-            onPress: () => {
-              try {
-                // Thử mở cài đặt Bluetooth
-                Linking.openSettings();
-              } catch (e) {
-                console.warn("Không thể mở cài đặt:", e);
-              }
-            } 
-          },
-        ]
-      );
-      return false;
-    }
-
-    // Bước 2: Yêu cầu quyền Bluetooth dựa trên phiên bản Android
+    // Bước 1: Yêu cầu quyền Bluetooth dựa trên phiên bản Android
     if (Platform.Version >= 31) {
       // Android 12+ (API 31+): Nearby Devices permissions
+      console.log(">>> requestBluetoothPermissions: Android 12+");
+      
+      // Trước tiên kiểm tra xem đã được cấp quyền chưa
+      const scanGranted = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN
+      );
+      const connectGranted = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT
+      );
+      
+      console.log(">>> requestBluetoothPermissions: scanGranted =", scanGranted, "connectGranted =", connectGranted);
+      
+      // Nếu đã có đủ quyền, trả về true ngay
+      if (scanGranted && connectGranted) {
+        console.log(">>> requestBluetoothPermissions: Already granted, return true");
+        return true;
+      }
+      
+      // Nếu chưa có quyền, hiển thị dialog yêu cầu
+      console.log(">>> requestBluetoothPermissions: Requesting permissions...");
       const granted = await PermissionsAndroid.requestMultiple([
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
@@ -44,6 +43,8 @@ export async function requestBluetoothPermissions(): Promise<boolean> {
 
       const bluetoothScanGranted = granted["android.permission.BLUETOOTH_SCAN"] === "granted";
       const bluetoothConnectGranted = granted["android.permission.BLUETOOTH_CONNECT"] === "granted";
+
+      console.log(">>> requestBluetoothPermissions: Result - scan =", bluetoothScanGranted, "connect =", bluetoothConnectGranted);
 
       if (!bluetoothScanGranted || !bluetoothConnectGranted) {
         Alert.alert(
@@ -57,13 +58,28 @@ export async function requestBluetoothPermissions(): Promise<boolean> {
             },
           ]
         );
+        console.log(">>> requestBluetoothPermissions: Permission denied, return false");
         return false;
       }
 
+      console.log(">>> requestBluetoothPermissions: Permission granted, return true");
       return true;
     } else if (Platform.Version >= 29) {
       // Android 10-11: Cần location permission cho Bluetooth discovery
-      const locationGranted = await PermissionsAndroid.request(
+      console.log(">>> requestBluetoothPermissions: Android 10-11");
+      
+      // Kiểm tra đã có quyền chưa
+      const locationGranted = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+      );
+      
+      if (locationGranted) {
+        console.log(">>> requestBluetoothPermissions: Location already granted, return true");
+        return true;
+      }
+      
+      // Yêu cầu quyền nếu chưa có
+      const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
           title: "Quyền vị trí",
@@ -74,7 +90,7 @@ export async function requestBluetoothPermissions(): Promise<boolean> {
         }
       );
       
-      if (locationGranted !== PermissionsAndroid.RESULTS.GRANTED) {
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
         Alert.alert(
           "Thiếu quyền vị trí",
           "Quyền vị trí cần thiết để tìm kiếm máy in Bluetooth. Vui lòng cấp quyền trong Cài đặt.",
@@ -86,16 +102,19 @@ export async function requestBluetoothPermissions(): Promise<boolean> {
             },
           ]
         );
+        console.log(">>> requestBluetoothPermissions: Location permission denied, return false");
         return false;
       }
       
+      console.log(">>> requestBluetoothPermissions: Location permission granted, return true");
       return true;
     } else {
       // Android 9 trở xuống: Không cần thêm quyền đặc biệt
+      console.log(">>> requestBluetoothPermissions: Android 9 or lower, return true");
       return true;
     }
   } catch (err) {
-    console.warn("Lỗi khi xin quyền Bluetooth:", err);
+    console.warn(">>> requestBluetoothPermissions: Error:", err);
     
     // Thử yêu cầu quyền cơ bản nếu có lỗi
     try {
@@ -109,26 +128,25 @@ export async function requestBluetoothPermissions(): Promise<boolean> {
           buttonPositive: "Đồng ý",
         }
       );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
+      const result = granted === PermissionsAndroid.RESULTS.GRANTED;
+      console.log(">>> requestBluetoothPermissions: Fallback result:", result);
+      return result;
     } catch (fallbackError) {
-      console.warn("Lỗi khi yêu cầu quyền fallback:", fallbackError);
+      console.warn(">>> requestBluetoothPermissions: Fallback error:", fallbackError);
       return false;
     }
   }
 }
 
-// Hàm kiểm tra nhanh Bluetooth đã bật chưa (không hiển thị alert)
-// Sử dụng phương pháp thủ công thay vì thư viện bên ngoài
+/**
+ * Kiểm tra xem ứng dụng đã có quyền Bluetooth cần thiết hay chưa
+ * @returns true nếu đã có đủ quyền, false nếu chưa
+ */
 export async function isBluetoothEnabled(): Promise<boolean> {
   if (Platform.OS !== "android") return true;
   
-  // Nếu đã có cache, trả về ngay
-  if (cachedBluetoothState !== null) {
-    return cachedBluetoothState;
-  }
-  
   try {
-    // Thử kiểm tra quyền Bluetooth (Android 12+)
+    // Kiểm tra quyền Bluetooth (Android 12+)
     if (Platform.Version >= 31) {
       const scanGranted = await PermissionsAndroid.check(
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN
@@ -137,30 +155,22 @@ export async function isBluetoothEnabled(): Promise<boolean> {
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT
       );
       
-      // Nếu có quyền, coi như Bluetooth có thể bật được
-      // (Không thể kiểm tra chính xác trạng thái bật/tắt mà không dùng thư viện)
-      cachedBluetoothState = scanGranted && connectGranted;
-      return cachedBluetoothState;
-    } else {
-      // Android 11 và thấp hơn: kiểm tra quyền location
+      // Nếu có đủ quyền, coi như có thể sử dụng Bluetooth
+      return scanGranted && connectGranted;
+    } else if (Platform.Version >= 29) {
+      // Android 10-11: kiểm tra quyền location
       const granted = await PermissionsAndroid.check(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
       );
-      cachedBluetoothState = granted;
-      return cachedBluetoothState;
+      return granted;
+    } else {
+      // Android 9 trở xuống: luôn trả về true (không cần kiểm tra thêm)
+      return true;
     }
   } catch (err) {
     console.warn("Lỗi kiểm tra trạng thái Bluetooth:", err);
-    // Mặc định coi như đã bật để cho phép người dùng thử
-    cachedBluetoothState = true;
-    return cachedBluetoothState;
+    // Khi có lỗi, trả về false để buộc phải kiểm tra lại quyền
+    return false;
   }
-}
-
-/**
- * Reset cache trạng thái Bluetooth - gọi khi người dùng thay đổi cài đặt
- */
-export function resetBluetoothStateCache(): void {
-  cachedBluetoothState = null;
 }
 

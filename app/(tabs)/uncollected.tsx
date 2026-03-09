@@ -261,7 +261,8 @@ export default function Uncollected() {
     try {
       await refetchNoti(); // Load layout thông báo mới nhất
       await new Promise((resolve) => setTimeout(resolve, 300)); // Đợi render
-      await notiPrinter.handlePrintInvoice(); // Gọi hàm in của instance Thông báo
+      // Truyền trực tiếp hóa đơn vào hàm in để đảm bảo in đúng hóa đơn được bấm
+      await notiPrinter.handlePrintInvoice(targetInvoice);
     } catch (error) {
       console.error("Lỗi in thông báo:", error);
       Alert.alert("Lỗi", "Không thể in thông báo.");
@@ -278,7 +279,8 @@ export default function Uncollected() {
     try {
       await refetchReceipt(); // Load layout biên nhận mới nhất
       await new Promise((resolve) => setTimeout(resolve, 300)); // Đợi render
-      await receiptPrinter.handlePrintInvoice(); // Gọi hàm in của instance Biên nhận
+      // Truyền trực tiếp hóa đơn vào hàm in để đảm bảo in đúng hóa đơn được bấm
+      await receiptPrinter.handlePrintInvoice(targetInvoice); 
     } catch (error) {
       console.error("Lỗi in biên nhận:", error);
       Alert.alert("Lỗi", "Không thể in biên nhận.");
