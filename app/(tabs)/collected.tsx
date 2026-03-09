@@ -191,8 +191,10 @@ export default function Collected() {
     showMessage({ message: "Đã làm mới dữ liệu", type: "success" });
   }, [resetAll]);
 
-  const handleRevertCollected = async () => {
-    if (!selectedInvoice) return;
+  const handleRevertCollected = async (item?: InvoiceInfo) => {
+    const targetInvoice = item || selectedInvoice;
+    if (!targetInvoice) return;
+    
     Alert.alert("Hoàn lại trạng thái", "Bạn muốn hoàn lại hóa đơn này về chưa thu?", [
       { text: "Hủy", style: "cancel" },
       {
@@ -202,7 +204,7 @@ export default function Collected() {
           try {
             const token = await AsyncStorage.getItem("token");
             if (!token) return;
-            await handleToggle_API(selectedInvoice._id, "collectionStatus");
+            await handleToggle_API(targetInvoice._id, "collectionStatus");
             showMessage({ message: "Đã hoàn lại trạng thái.", type: "success" });
 
             setSelectedInvoice(null); // Reset UI ngay lập tức
@@ -220,13 +222,19 @@ export default function Collected() {
     ]);
   };
 
-  const handlePrintWithLatestLayout = async () => {
+  const handlePrintWithLatestLayout = async (item?: InvoiceInfo) => {
+    const targetInvoice = item || selectedInvoice;
+    if (!targetInvoice) {
+      Alert.alert("Chưa có hóa đơn", "Vui lòng chọn hóa đơn trước khi in.");
+      return;
+    }
+    
     try {
       await fetchLayout();
       // Đợi layout render xong
       await new Promise(resolve => setTimeout(resolve, 500));
-      // Gọi hàm in
-      await handlePrintInvoice();
+      // Gọi hàm in với hóa đơn cụ thể
+      await handlePrintInvoice(targetInvoice);
     } catch (error) {
       console.error("Lỗi in:", error);
       Alert.alert("Lỗi", "Không thể in hóa đơn.");

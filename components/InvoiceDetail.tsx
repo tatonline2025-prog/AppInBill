@@ -71,9 +71,9 @@ function InfoRow({
  */
 interface InvoiceDetailProps {
   invoice: InvoiceInfo;
-  onRevertCollected?: () => void;
+  onRevertCollected?: (invoice: InvoiceInfo) => void;
   onRevertIsPaid?: () => void;
-  onPrintInvoice: () => void;
+  onPrintInvoice: (invoice: InvoiceInfo) => void;
   onUpdateInfo?: (updatedFields: InvoiceInfo) => void;
 }
 
@@ -153,14 +153,14 @@ export default function InvoiceDetail({
     <>
       <View style={styles.invoiceDetailContainer}>
         <TouchableOpacity
-          onPress={onPrintInvoice}
+          onPress={() => onPrintInvoice(invoice)}
           style={[styles.actionButton, styles.printButton]}
         >
           <Text style={styles.actionButtonText}>In biên nhận</Text>
         </TouchableOpacity>
 
         {onRevertCollected && (
-          <TouchableOpacity onPress={onRevertCollected} style={[styles.actionButton, styles.revertButton]}>
+          <TouchableOpacity onPress={() => onRevertCollected(invoice)} style={[styles.actionButton, styles.revertButton]}>
             <Text style={styles.actionButtonText}>Hoàn lại trạng thái</Text>
           </TouchableOpacity>
         )}
