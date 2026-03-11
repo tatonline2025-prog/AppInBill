@@ -14,6 +14,9 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     "Roboto-Regular": require("../assets/fonts/Roboto-Regular.ttf"),
     "Roboto-Bold": require("../assets/fonts/Roboto-Bold.ttf"),
+    "NotoSans-Regular": require("../assets/fonts/NotoSans-Regular.ttf"),
+    "NotoSans-Bold": require("../assets/fonts/NotoSans-Bold.ttf"),
+    "NotoSans-Medium": require("../assets/fonts/NotoSans-Medium.ttf"),
   });
 
   // Hide splash screen when fonts are loaded

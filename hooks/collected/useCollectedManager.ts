@@ -98,7 +98,7 @@ export const useCollectedManager = (user: IUser | null) => {
     const pageToFetch = isLoadMore ? currentPage + 1 : 1;
 
     try {
-      const res = await searchInvoice_API("collected", user._id, user.province, code, searchType, pageToFetch, 100);
+      const res = await searchInvoice_API("collected", user._id, user.province, code, searchType, pageToFetch, 50);
 
       const newData = res.data || [];
       const totalPagesServer = res.totalPages || 1;
@@ -164,7 +164,7 @@ export const useCollectedManager = (user: IUser | null) => {
       const dateString = date.toLocaleDateString("en-CA"); // YYYY-MM-DD
 
       // Gọi API với page và limit
-      const res = await searchInvoiceByDate_API(user._id, user.province, dateString, pageToFetch, 100);
+      const res = await searchInvoiceByDate_API(user._id, user.province, dateString, pageToFetch, 50);
 
       // API trả về cấu trúc mới: { data, totalPages, currentPage, ... }
       const newData = res.data || [];

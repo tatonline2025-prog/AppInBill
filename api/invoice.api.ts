@@ -267,7 +267,7 @@ export const fetchAllPaidInvoices_API = async (
         userprovince,
         isPaid: "true", // Lọc hóa đơn đã đóng cước
         page: page || 1,
-        limit: limit || 100,
+        limit: limit || 50,
       },
     });
     return res.data;

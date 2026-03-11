@@ -69,7 +69,13 @@ export default {
       [
         "expo-font",
         {
-          fonts: ["./assets/fonts/Roboto-Regular.ttf", "./assets/fonts/Roboto-Bold.ttf"],
+          fonts: [
+            "./assets/fonts/Roboto-Regular.ttf",
+            "./assets/fonts/Roboto-Bold.ttf",
+            "./assets/fonts/NotoSans-Regular.ttf",
+            "./assets/fonts/NotoSans-Bold.ttf",
+            "./assets/fonts/NotoSans-Medium.ttf",
+          ],
         },
       ],
     ],

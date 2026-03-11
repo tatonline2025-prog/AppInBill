@@ -4,6 +4,7 @@ import axios from "axios";
 import Constants from "expo-constants";
 
 const BASE_URL = Constants.expoConfig?.extra?.appBill;
+const REQUEST_TIMEOUT_MS = 6000;
 
 if (!BASE_URL) {
   throw new Error("BASE_URL chưa được cấu hình trong extra");
@@ -18,6 +19,7 @@ export const saveInvoiceLayout = async (layoutID: string, layout: InvoiceLayoutI
       `${BASE_URL}/api/invoiceslayout/save`,
       { layoutID, layout },
       {
+        timeout: REQUEST_TIMEOUT_MS,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -37,6 +39,7 @@ export const getInvoiceLayout = async () => {
     const token = await AsyncStorage.getItem("token");
     
     const res = await axios.get(`${BASE_URL}/api/invoiceslayout/get`, {
+      timeout: REQUEST_TIMEOUT_MS,
       headers: token ? {
         Authorization: `Bearer ${token}`,
       } : {},

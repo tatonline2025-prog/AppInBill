@@ -259,8 +259,9 @@ export default function Uncollected() {
     setInvoice(targetInvoice);
     
     try {
-      await refetchNoti(); // Load layout thông báo mới nhất
-      await new Promise((resolve) => setTimeout(resolve, 300)); // Đợi render
+      // Do not block printing when layout API is slow/unavailable.
+      refetchNoti().catch((err) => console.warn("Refetch noti layout failed:", err));
+      await new Promise((resolve) => setTimeout(resolve, 120)); // Đợi render
       // Truyền trực tiếp hóa đơn vào hàm in để đảm bảo in đúng hóa đơn được bấm
       await notiPrinter.handlePrintInvoice(targetInvoice);
     } catch (error) {
@@ -277,8 +278,9 @@ export default function Uncollected() {
     setInvoice(targetInvoice);
     
     try {
-      await refetchReceipt(); // Load layout biên nhận mới nhất
-      await new Promise((resolve) => setTimeout(resolve, 300)); // Đợi render
+      // Do not block printing when layout API is slow/unavailable.
+      refetchReceipt().catch((err) => console.warn("Refetch receipt layout failed:", err));
+      await new Promise((resolve) => setTimeout(resolve, 120)); // Đợi render
       // Truyền trực tiếp hóa đơn vào hàm in để đảm bảo in đúng hóa đơn được bấm
       await receiptPrinter.handlePrintInvoice(targetInvoice); 
     } catch (error) {

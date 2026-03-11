@@ -49,7 +49,7 @@ export const useUncollectedSearch = (user: IUser | null) => {
           assignedUserId,
           userProvince,
           pageToFetch,
-          100
+          50
         );
 
 
@@ -131,8 +131,10 @@ export const useUncollectedSearch = (user: IUser | null) => {
 
 // Xác định assignedUserId:
         // - Admin: LUÔN LUÔN KHÔNG truyền assignedUserId (xem tất cả)
-        // - User: Truyền assignedUserId (xem của mình)
-        const shouldShowAll = isAdmin;
+        // - User: Khi tìm hóa đơn CHƯA THU thì KHÔNG truyền assignedUserId để xem tất cả
+        //         Khi tìm hóa đơn đã đóng cước (isPaid=true) thì truyền assignedUserId
+        const isUncollected = true; // Hook này luôn tìm hóa đơn chưa thu
+        const shouldShowAll = isAdmin || isUncollected;
         const assignedUserId = shouldShowAll ? undefined : (user?._id || undefined);
         
         // Admin: KHÔNG truyền province (xem tất cả các tỉnh)
@@ -148,7 +150,7 @@ export const useUncollectedSearch = (user: IUser | null) => {
             code.trim(),
             "station",
             pageToFetch,
-            100,
+            50,
             isPaidValue
           );
 
@@ -173,7 +175,7 @@ export const useUncollectedSearch = (user: IUser | null) => {
           code.trim(),
           type,
           pageToFetch,
-          100,
+          50,
           isPaidValue
         );
 
@@ -355,7 +357,7 @@ export const useUncollectedSearch = (user: IUser | null) => {
       setInvoiceData((prev) => [...prev, ...res.data]);
       setPage(nextPage);
 
-      if (nextPage * 100 >= res.total) {
+      if (nextPage * 50 >= res.total) {
         setHasMore(false);
       }
     }

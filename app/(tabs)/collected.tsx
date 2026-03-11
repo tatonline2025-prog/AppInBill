@@ -230,9 +230,10 @@ export default function Collected() {
     }
     
     try {
-      await fetchLayout();
-      // Đợi layout render xong
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Do not block printing when layout API is slow/unavailable.
+      fetchLayout().catch((err) => console.warn("Refetch collected layout failed:", err));
+      // Đợi layout hiện tại render xong
+      await new Promise(resolve => setTimeout(resolve, 120));
       // Gọi hàm in với hóa đơn cụ thể
       await handlePrintInvoice(targetInvoice);
     } catch (error) {
