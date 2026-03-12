@@ -97,8 +97,12 @@ export const DynamicInvoiceLayout = ({
   forwardedRef: ForwardedRef<ViewShot>;
   visible?: boolean;
 }) => {
+  const hasCollectionFeeBlock = layout.some((item) => item.id === "collectionFee");
+  const hasTotalCollectionBlock = layout.some((item) => item.id === "totalCollection");
+
   const renderBillBlock = (block: InvoiceLayoutItem) => {
-    if (!block.visible) return null;
+    const isFeeBlock = block.id === "collectionFee" || block.id === "totalCollection";
+    if (!block.visible && !isFeeBlock) return null;
 
     const BlockMap: Record<string, JSX.Element | null> = {
       header: <BillHeader label={block.label} />,
@@ -153,6 +157,8 @@ export const DynamicInvoiceLayout = ({
         {layout.map((block) => (
           <React.Fragment key={block.id}>{renderBillBlock(block)}</React.Fragment>
         ))}
+        {!hasCollectionFeeBlock && <BillCollectionFee invoice={invoice} label="Phí dịch vụ" />}
+        {!hasTotalCollectionBlock && <BillTotalCollection invoice={invoice} label="Tổng thu" />}
       </View>
     </ViewShot>
   );
@@ -169,8 +175,12 @@ export const DynamicNotiInvoiceLayout = ({
   forwardedRef: ForwardedRef<ViewShot>;
   visible?: boolean;
 }) => {
+  const hasCollectionFeeBlock = layout.some((item) => item.id === "collectionFee");
+  const hasTotalCollectionBlock = layout.some((item) => item.id === "totalCollection");
+
   const renderBillBlock = (block: InvoiceLayoutItem) => {
-    if (!block.visible) return null;
+    const isFeeBlock = block.id === "collectionFee" || block.id === "totalCollection";
+    if (!block.visible && !isFeeBlock) return null;
 
     const BlockMap: Record<string, JSX.Element | null> = {
       // --- Nhóm 1: Đầu trang ---
@@ -246,6 +256,8 @@ export const DynamicNotiInvoiceLayout = ({
         {layout.map((block) => (
           <React.Fragment key={block.id}>{renderBillBlock(block)}</React.Fragment>
         ))}
+        {!hasCollectionFeeBlock && <BillCollectionFee invoice={invoice} label="Phí dịch vụ" />}
+        {!hasTotalCollectionBlock && <BillTotalCollection invoice={invoice} label="Tổng thu" />}
       </View>
     </ViewShot>
   );

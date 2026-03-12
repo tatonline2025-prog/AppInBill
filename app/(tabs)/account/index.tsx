@@ -40,7 +40,7 @@ const defaultLayout: InvoiceLayoutItem[] = [
   { id: "companyInfo", label: "CÔNG TY ĐIỆN LỰC LẤP VÒ", visible: true },
   { id: "header", label: "THÔNG BÁO TIỀN ĐIỆN", visible: true },
   { id: "billingPeriod", label: "Kỳ", visible: true },
-  { id: "dateRange", label: "", visible: true },
+{ id: "dateRange", label: "Thời gian", visible: true },
   { id: "customerName", label: "Tên KH", visible: true },
   { id: "customerAddress", label: "Địa chỉ", visible: true },
   { id: "customerCode", label: "Mã KH", visible: true },

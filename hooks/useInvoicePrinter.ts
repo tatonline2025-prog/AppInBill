@@ -2,6 +2,7 @@ import {
   isBluetoothEnabled,
   requestBluetoothPermissions,
 } from "@/components/BluetoothPermission";
+import { useAuth } from "@/context/AuthContext";
 import { InvoiceInfo } from "@/types/invoice";
 import { generateBillImage } from "@/utils/generateBillImage";
 import { useEffect, useRef, useState } from "react";

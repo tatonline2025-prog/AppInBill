@@ -1,4 +1,4 @@
-﻿import { Text } from "@/components/StyledText";
+import { Text } from "@/components/StyledText";
 import { useAuth } from "@/context/AuthContext";
 import { InvoiceInfo } from "@/types/invoice";
 import React, { useState } from "react";
@@ -92,6 +92,9 @@ export default function InvoiceDetail({
   const assignedId =
     typeof invoice.assignedTo === "object" ? invoice.assignedTo?._id : invoice.assignedTo;
   const canEditInvoice = !!user && (user.role === "admin" || (!!assignedId && assignedId === user._id));
+  const feeRaw = user?.collectionFee ?? invoice.assignedTo?.collectionFee ?? 0;
+  const collectionFee = Number(feeRaw) > 0 ? Number(feeRaw) : 0;
+  const totalWithFee = Number(invoice.totalAmount || 0) + collectionFee;
 
   const startEdit = (key: keyof InvoiceInfo, label: string, type: FieldType = "text") => {
     if (!canEditInvoice) {
@@ -208,17 +211,17 @@ export default function InvoiceDetail({
         <InfoRow label="Kỳ" value={invoice.billing_period} />
         
         {/* Hiển thị phí dịch vụ và tổng cộng nếu collectionFee > 0 */}
-        {(invoice.assignedTo?.collectionFee ?? 0) > 0 && (
+        {collectionFee > 0 && (
           <>
             <InfoRow
               label="Phí dịch vụ"
-              value={Number(invoice.assignedTo?.collectionFee ?? 0).toLocaleString("vi-VN") + " VND"}
+              value={collectionFee.toLocaleString("vi-VN") + " VND"}
               labelStyle={{ color: "#f97316" }}
               valueStyle={{ color: "#f97316", fontWeight: "700" }}
             />
             <InfoRow
               label="Tổng cộng"
-              value={Number(invoice.totalAmount + (invoice.assignedTo?.collectionFee ?? 0)).toLocaleString("vi-VN") + " VND"}
+              value={totalWithFee.toLocaleString("vi-VN") + " VND"}
               labelStyle={{ fontWeight: "700", color: "#1e293b" }}
               valueStyle={{ fontWeight: "700", color: "#16a34a" }}
             />
@@ -267,4 +270,5 @@ export default function InvoiceDetail({
     </>
   );
 }
+
 

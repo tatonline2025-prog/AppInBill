@@ -1,24 +1,37 @@
 // src/components/BillBlocks.tsx
 import { InvoiceInfo } from "@/types/invoice";
-import { day, month, numberToVietnameseWords } from "@/utils/printer"; // Import từ file utils mới
+import { useAuth } from "@/context/AuthContext";
+import { day, month, numberToVietnameseWords } from "@/utils/printer"; // Import tá»« file utils má»›i
 import React from "react";
 import { View } from "react-native";
-import { BillText } from "./BillText"; // Import từ BillText mới
+import { BillText } from "./BillText"; // Import tá»« BillText má»›i
 
 const isMissing = (value: any) => {
   if (value === null || value === undefined) return true;
   if (typeof value === "string" && value.trim() === "") return true;
   return false;
 };
+const resolveCollectionFee = (invoice: InvoiceInfo | null, userFee?: number) => {
+  const fallbackFee = Number(userFee) || 0;
+  if (fallbackFee > 0) return fallbackFee;
 
-// --- Khối 1: Header ---
+  const assignedFeeRaw = invoice?.assignedTo?.collectionFee;
+  if (assignedFeeRaw !== null && assignedFeeRaw !== undefined) {
+    const assignedFee = Number(assignedFeeRaw) || 0;
+    return assignedFee > 0 ? assignedFee : 0;
+  }
+
+  return 0;
+};
+
+// --- Khá»‘i 1: Header ---
 export const BillHeader = ({ label, customStyle }: { label: string; customStyle?: any }) => (
   <BillText
     style={[
       {
         textAlign: "center",
         fontFamily: "NotoSans-Bold",
-        fontSize: 11, // Cần import  nếu chưa có
+        fontSize: 11, // Cáº§n import  náº¿u chÆ°a cĂ³
         marginBottom: 2,
         lineHeight: 12,
       },
@@ -29,7 +42,7 @@ export const BillHeader = ({ label, customStyle }: { label: string; customStyle?
   </BillText>
 );
 
-// --- Khối 2: Billing Period ---
+// --- Khá»‘i 2: Billing Period ---
 export const BillBillingPeriod = ({
   invoice,
   label,
@@ -48,7 +61,7 @@ export const BillBillingPeriod = ({
   );
 };
 
-// --- Khối 3: Customer Info ---
+// --- Khá»‘i 3: Customer Info ---
 const Row = ({ label, value, valueStyle }: { label: string; value?: string; valueStyle?: any }) => {
   if (isMissing(value)) return null;
 
@@ -77,14 +90,14 @@ export const BillCustomerAddress = ({ invoice, label }: { invoice: InvoiceInfo |
 
   return (
     <View style={{ marginBottom: 1 }}>
-      {/* textAlign: 'justify' giúp văn bản khi dài sẽ căn đều 2 bên mép giấy, 
-         trông sẽ đẹp và chuyên nghiệp hơn, bù đắp lại việc không thể căn phải dòng đầu.
+      {/* textAlign: 'justify' giĂºp vÄƒn báº£n khi dĂ i sáº½ cÄƒn Ä‘á»u 2 bĂªn mĂ©p giáº¥y, 
+         trĂ´ng sáº½ Ä‘áº¹p vĂ  chuyĂªn nghiá»‡p hÆ¡n, bĂ¹ Ä‘áº¯p láº¡i viá»‡c khĂ´ng thá»ƒ cÄƒn pháº£i dĂ²ng Ä‘áº§u.
       */}
       <BillText style={{ textAlign: "justify" }}>
-        {/* Phần Label: In đậm để phân biệt */}
+        {/* Pháº§n Label: In Ä‘áº­m Ä‘á»ƒ phĂ¢n biá»‡t */}
         <BillText>{label}: </BillText>
 
-        {/* Phần Value: Viết liền mạch để khi xuống dòng sẽ tràn sang trái */}
+        {/* Pháº§n Value: Viáº¿t liá»n máº¡ch Ä‘á»ƒ khi xuá»‘ng dĂ²ng sáº½ trĂ n sang trĂ¡i */}
         <BillText>
           {" "}
           {"  "}
@@ -95,7 +108,7 @@ export const BillCustomerAddress = ({ invoice, label }: { invoice: InvoiceInfo |
   );
 };
 
-// --- Khối 4: Amount Details ---
+// --- Khá»‘i 4: Amount Details ---
 const ConditionalAmountRow = ({
   invoice,
   label,
@@ -108,7 +121,7 @@ const ConditionalAmountRow = ({
   const amount = isCurrent ? Number(invoice?.currentAmount) || 0 : Number(invoice?.previousAmount) || 0;
   const previous = Number(invoice?.previousAmount) || 0;
 
-  // Logic: nếu là kỳ trước VÀ bằng 0 → ẩn
+  // Logic: náº¿u lĂ  ká»³ trÆ°á»›c VĂ€ báº±ng 0 â†’ áº©n
   if (!isCurrent && previous === 0) return null;
 
   return (
@@ -129,18 +142,26 @@ export const BillPreviousAmount = (props: { invoice: InvoiceInfo | null; label: 
   <ConditionalAmountRow {...props} isCurrent={false} />
 );
 
-// --- Khối 5: Total Amount ---
-export const BillTotalAmountNumber = ({ invoice, label }: { invoice: InvoiceInfo | null; label: string }) => (
-  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 1, alignItems: "flex-start" }}>
-    <BillText>{label}:</BillText>
-    <BillText style={{ fontFamily: "NotoSans-Regular", flex: 1, textAlign: "right" }}>
-      {(Number(invoice?.totalAmount) || 0).toLocaleString("vi-VN")} VND
-    </BillText>
-  </View>
-);
+// --- Khá»‘i 5: Total Amount ---
+export const BillTotalAmountNumber = ({ invoice, label }: { invoice: InvoiceInfo | null; label: string }) => {
+  const { user } = useAuth();
+  const fee = resolveCollectionFee(invoice, user?.collectionFee);
+  const baseTotal = Number(invoice?.totalAmount) || 0;
+  const finalTotal = fee > 0 ? baseTotal + fee : baseTotal;
+
+  return (
+    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 1, alignItems: "flex-start" }}>
+      <BillText>{label}:</BillText>
+      <BillText style={{ fontFamily: "NotoSans-Regular", flex: 1, textAlign: "right" }}>
+        {finalTotal.toLocaleString("vi-VN")} VND
+      </BillText>
+    </View>
+  );
+};
 
 export const BillTotalAmountWords = ({ invoice, label }: { invoice: InvoiceInfo | null; label: string }) => {
-  const fee = Number(invoice?.assignedTo?.collectionFee) || 0;
+  const { user } = useAuth();
+  const fee = resolveCollectionFee(invoice, user?.collectionFee);
   const total = Number(invoice?.totalAmount) || 0;
 
   const combined = total + fee;
@@ -152,14 +173,14 @@ export const BillTotalAmountWords = ({ invoice, label }: { invoice: InvoiceInfo 
         <BillText>
           {" "}
           {"  "}
-          {numberToVietnameseWords(Number(combined)) || "Không"} đồng
+          {numberToVietnameseWords(Number(combined)) || "KhĂ´ng"} Ä‘á»“ng
         </BillText>
       </BillText>
     </View>
   );
 };
 
-// --- Khối 6: Collector Info ---
+// --- Khá»‘i 6: Collector Info ---
 export const BillCollectorSeparator = ({ label }: { label: string }) => (
   <View style={{ alignItems: "center", marginTop: 5, marginBottom: 5 }}>
     <BillText style={{ fontFamily: "NotoSans-Regular" }}>{label}</BillText>
@@ -183,7 +204,7 @@ export const BillTimestamp = ({ label }: { label: string }) => (
   </View>
 );
 
-// --- Khối 7: Footer ---
+// --- Khá»‘i 7: Footer ---
 export const BillFooter = ({ label }: { label: string }) => (
   <View style={{ marginTop: 6, marginBottom: 6, alignItems: "center" }}>
     <BillText
@@ -249,9 +270,9 @@ export const BillCompanyInfo = ({
 );
 
 export const BillDateRange = ({ invoice }: { invoice: InvoiceInfo | null }) => {
-  const period = invoice?.billing_period; // Ví dụ: "10/2025"
+  const period = invoice?.billing_period; // VĂ­ dá»¥: "10/2025"
 
-  // 1. Kiểm tra dữ liệu đầu vào có đúng định dạng "mm/yyyy" không
+  // 1. Kiá»ƒm tra dá»¯ liá»‡u Ä‘áº§u vĂ o cĂ³ Ä‘Ăºng Ä‘á»‹nh dáº¡ng "mm/yyyy" khĂ´ng
   if (!period || !period.includes("/")) return null;
 
   try {
@@ -259,27 +280,27 @@ export const BillDateRange = ({ invoice }: { invoice: InvoiceInfo | null }) => {
     const month = parseInt(monthStr, 10);
     const year = parseInt(yearStr, 10);
 
-    // Kiểm tra tính hợp lệ của số tháng/năm
+    // Kiá»ƒm tra tĂ­nh há»£p lá»‡ cá»§a sá»‘ thĂ¡ng/nÄƒm
     if (isNaN(month) || isNaN(year) || month < 1 || month > 12) return null;
 
-    // 2. Tính toán ngày
-    // - Ngày đầu: Luôn là 01
-    // - Ngày cuối: Dùng thủ thuật `new Date(year, month, 0)` trong JS
-    //   (Ngày 0 của tháng sau chính là ngày cuối cùng của tháng hiện tại)
+    // 2. TĂ­nh toĂ¡n ngĂ y
+    // - NgĂ y Ä‘áº§u: LuĂ´n lĂ  01
+    // - NgĂ y cuá»‘i: DĂ¹ng thá»§ thuáº­t `new Date(year, month, 0)` trong JS
+    //   (NgĂ y 0 cá»§a thĂ¡ng sau chĂ­nh lĂ  ngĂ y cuá»‘i cĂ¹ng cá»§a thĂ¡ng hiá»‡n táº¡i)
     const lastDayOfMonth = new Date(year, month, 0).getDate();
 
-    // Format lại cho đẹp (đảm bảo 2 chữ số)
+    // Format láº¡i cho Ä‘áº¹p (Ä‘áº£m báº£o 2 chá»¯ sá»‘)
     const fmtMonth = month.toString().padStart(2, "0");
     const startDate = `01/${fmtMonth}/${year}`;
     const endDate = `${lastDayOfMonth}/${fmtMonth}/${year}`;
 
     return (
       <BillText style={{ textAlign: "center", marginBottom: 4, fontStyle: "italic" }}>
-        (từ ngày {startDate} đến ngày {endDate})
+        {`(T\u1EEB ng\u00E0y ${startDate} \u0111\u1EBFn ng\u00E0y ${endDate})`}
       </BillText>
     );
   } catch {
-    // Nếu có lỗi parse, ẩn luôn dòng này
+    // Náº¿u cĂ³ lá»—i parse, áº©n luĂ´n dĂ²ng nĂ y
     return null;
   }
 };
@@ -306,8 +327,9 @@ export const BillNote = ({ label }: { label: string }) => {
 };
 
 export const BillCollectionFee = ({ invoice, label }: { invoice: InvoiceInfo | null; label: string }) => {
-  const fee = Number(invoice?.assignedTo?.collectionFee) || 0;
-  // Chỉ hiển thị khi fee > 0
+  const { user } = useAuth();
+  const fee = resolveCollectionFee(invoice, user?.collectionFee);
+  // Chá»‰ hiá»ƒn thá»‹ khi fee > 0
   if (!fee || fee <= 0) return null;
 
   return (
@@ -323,9 +345,10 @@ export const BillCollectionFee = ({ invoice, label }: { invoice: InvoiceInfo | n
 
 
 export const BillTotalCollection = ({ invoice, label }: { invoice: InvoiceInfo | null; label: string }) => {
-  const fee = Number(invoice?.assignedTo?.collectionFee) || 0;
+  const { user } = useAuth();
+  const fee = resolveCollectionFee(invoice, user?.collectionFee);
   const total = Number(invoice?.totalAmount) || 0;
-  // Chỉ hiển thị khi fee > 0
+  // Chá»‰ hiá»ƒn thá»‹ khi fee > 0
   if (!fee || fee <= 0) return null;
 
   const combined = total + fee;
@@ -339,3 +362,8 @@ export const BillTotalCollection = ({ invoice, label }: { invoice: InvoiceInfo |
     </View>
   );
 };
+
+
+
+
+
