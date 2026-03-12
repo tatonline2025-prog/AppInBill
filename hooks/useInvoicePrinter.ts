@@ -230,7 +230,7 @@ export const useInvoicePrinter = (
     try {
       await withTimeout(BLEPrinter.connectPrinter(printer.address), 10000, "Printer connection timeout.");
       isConnected = true;
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      await new Promise((resolve) => setTimeout(resolve, 650));
 
       const base64Image = await withTimeout(
         generateBillImage(viewShotRef),
@@ -239,7 +239,7 @@ export const useInvoicePrinter = (
       );
 
       if (!base64Image) {
-        throw new Error("Cannot generate bill image.");
+        throw new Error("Cannot generate bill image. Print layout is not ready.");
       }
 
       try {

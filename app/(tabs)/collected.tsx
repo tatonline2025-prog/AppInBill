@@ -468,14 +468,12 @@ export default function Collected() {
       {/* --- CÁC MODAL VÀ VIEW ẨN --- */}
       {printerModalProps.visible && <PrinterModal {...printerModalProps} />}
 
-      {!isLayoutLoading && (
-        <DynamicInvoiceLayout
-          forwardedRef={viewShotRef}
-          invoice={selectedInvoice}
-          layout={invoiceLayout || DEFAULT_INVOICE_LAYOUT}
-          visible={false}
-        />
-      )}
+      <DynamicInvoiceLayout
+        forwardedRef={viewShotRef}
+        invoice={selectedInvoice}
+        layout={invoiceLayout || DEFAULT_INVOICE_LAYOUT}
+        visible={false}
+      />
     </View>
   );
 }

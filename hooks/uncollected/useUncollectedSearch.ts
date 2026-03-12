@@ -7,6 +7,36 @@ import { showMessage } from "react-native-flash-message";
 
 type SearchType = "customer" | "station" | "customerName";
 
+type SearchResult = {
+  data: InvoiceInfo[];
+  total: number;
+  totalAmount: number;
+};
+
+const parseSearchResponse = (res: any): SearchResult => {
+  // Backend responses are not fully consistent across endpoints.
+  // Normalize everything to one shape for UI consumption.
+  const topLevelData = Array.isArray(res?.data) ? res.data : null;
+  const nestedData = Array.isArray(res?.data?.data) ? res.data.data : null;
+  const directData = Array.isArray(res) ? res : null;
+  const data = topLevelData || nestedData || directData || [];
+
+  const total =
+    Number(res?.summary?.totalInvoices) ||
+    Number(res?.total) ||
+    Number(res?.data?.total) ||
+    data.length ||
+    0;
+
+  const totalAmount =
+    Number(res?.summary?.totalAmount) ||
+    Number(res?.totalAmount) ||
+    Number(res?.data?.totalAmount) ||
+    0;
+
+  return { data, total, totalAmount };
+};
+
 export const useUncollectedSearch = (user: IUser | null) => {
   const [customerCode, setCustomerCode] = useState("");
   const [invoice, setInvoice] = useState<InvoiceInfo | null>(null);
@@ -120,10 +150,12 @@ export const useUncollectedSearch = (user: IUser | null) => {
 
   // --- 2. Hàm gọi API tìm kiếm ---
   const fetchData = useCallback(
-    async (code: string, type: SearchType, pageToFetch: number = 1, paidFilter?: boolean) => {
-      if (!code.trim()) return { data: [], total: 0 };
+    async (code: string, type: SearchType, pageToFetch: number = 1, paidFilter?: boolean): Promise<SearchResult> => {
+      if (!code.trim()) return { data: [], total: 0, totalAmount: 0 };
       
       try {
+        const normalizedCode = type === "station" ? code.trim().toUpperCase() : code.trim();
+
         // Backend so sánh isPaid === "true" (string), nên cần chuyển đổi
         const isPaidValue = paidFilter !== undefined 
           ? (paidFilter ? "true" : "false") 
@@ -142,53 +174,20 @@ export const useUncollectedSearch = (user: IUser | null) => {
         const userProvince = isAdmin ? undefined : (user?.province || undefined);
 
 
-        if (type === "station") {
-          const res = await searchInvoice_API(
-            "not_collected",
-            assignedUserId,
-            userProvince,
-            code.trim(),
-            "station",
-            pageToFetch,
-            50,
-            isPaidValue
-          );
-
-
-          if (res && Array.isArray(res.data)) {
-            return {
-              data: res.data,
-              total: res.summary?.totalInvoices || res.total || 0,
-              totalAmount: res.summary?.totalAmount || res.totalAmount || 0,
-            };
-          } else {
-            return { data: [], total: 0, totalAmount: 0 };
-          }
-        }
-
-        if (!user) return { data: [], total: 0 };
+        if (!user) return { data: [], total: 0, totalAmount: 0 };
         
         const res = await searchInvoice_API(
           "not_collected",
           assignedUserId,
           userProvince,
-          code.trim(),
+          normalizedCode,
           type,
           pageToFetch,
           50,
           isPaidValue
         );
 
-
-        if (res && Array.isArray(res.data)) {
-          return {
-            data: res.data,
-            total: res.total || 0,
-            totalAmount: res.totalAmount || 0,
-          };
-        } else {
-          return { data: [], total: 0, totalAmount: 0 };
-        }
+        return parseSearchResponse(res);
       } catch (error) {
         console.error("Search error:", error);
         return { data: [], total: 0, totalAmount: 0 };
@@ -287,7 +286,8 @@ export const useUncollectedSearch = (user: IUser | null) => {
     setPage(1);
 
     // Gọi API trang 1
-    const res = await fetchData(finalCode, currentSearchType, 1, currentPaidFilter);
+    const normalizedSearchCode = currentSearchType === "station" ? finalCode.toUpperCase() : finalCode;
+    const res = await fetchData(normalizedSearchCode, currentSearchType, 1, currentPaidFilter);
 
     setIsLoading(false);
 
@@ -320,8 +320,8 @@ export const useUncollectedSearch = (user: IUser | null) => {
     } else if (currentSearchType === "customer") {
       const found = newData.find(
         (item: any) =>
-          item?.invoiceNumber?.toLowerCase().includes(finalCode.toLowerCase()) ||
-          item?.customerName?.toLowerCase().includes(finalCode.toLowerCase())
+          item?.invoiceNumber?.toLowerCase().includes(normalizedSearchCode.toLowerCase()) ||
+          item?.customerName?.toLowerCase().includes(normalizedSearchCode.toLowerCase())
       );
       const targetInvoice = found || newData[0];
 

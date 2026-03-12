@@ -128,12 +128,10 @@ export const DynamicInvoiceLayout = ({
       ? { opacity: 1, position: "relative" as const }
       : {
           position: "absolute" as const,
-          top: 0,
-          left: 0,
-          // Sử dụng width/height cố định nhỏ thay vì 0 để đảm bảo render
-          width: 1,
-          height: 1,
-          overflow: "hidden" as const,
+          top: -9999,
+          left: -9999,
+          width: viewShotWidthInDp,
+          opacity: 0,
         }),
   };
 
@@ -224,12 +222,10 @@ export const DynamicNotiInvoiceLayout = ({
       ? { opacity: 1, position: "relative" as const }
       : {
           position: "absolute" as const,
-          top: 0,
-          left: 0,
-          // Sử dụng width/height cố định nhỏ thay vì 0 để đảm bảo render
-          width: 1,
-          height: 1,
-          overflow: "hidden" as const,
+          top: -9999,
+          left: -9999,
+          width: viewShotWidthInDp,
+          opacity: 0,
         }),
   };
 

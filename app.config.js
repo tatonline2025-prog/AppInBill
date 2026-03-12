@@ -10,7 +10,8 @@ export default {
     icon: "./assets/images/icon.png",
     scheme: "inbillapp",
     userInterfaceStyle: "light",
-    newArchEnabled: true,
+    // Keep disabled for legacy native printer module compatibility
+    newArchEnabled: false,
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.vodang.InBillApp",
