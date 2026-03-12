@@ -1,4 +1,5 @@
-import { Text } from "@/components/StyledText";
+﻿import { Text } from "@/components/StyledText";
+import { useAuth } from "@/context/AuthContext";
 import { InvoiceInfo } from "@/types/invoice";
 import React, { useState } from "react";
 import { StyleProp, TextStyle, TouchableOpacity, View } from "react-native";
@@ -67,7 +68,7 @@ function InfoRow({
 }
 
 /**
- * Component chính hiển thị Card thông tin chi tiết hoá đơn
+ * Component chính hiển thị Card thông tin chi tiết hóa đơn
  */
 interface InvoiceDetailProps {
   invoice: InvoiceInfo;
@@ -84,10 +85,20 @@ export default function InvoiceDetail({
   onPrintInvoice,
   onUpdateInfo,
 }: InvoiceDetailProps) {
+  const { user } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [editSession, setEditSession] = useState<EditSession | null>(null);
 
+  const assignedId =
+    typeof invoice.assignedTo === "object" ? invoice.assignedTo?._id : invoice.assignedTo;
+  const canEditInvoice = !!user && (user.role === "admin" || (!!assignedId && assignedId === user._id));
+
   const startEdit = (key: keyof InvoiceInfo, label: string, type: FieldType = "text") => {
+    if (!canEditInvoice) {
+      showMessage({ message: "Bạn chỉ được sửa hóa đơn thuộc về bạn.", type: "warning" });
+      return;
+    }
+
     const rawValue = invoice[key];
     const value = typeof rawValue === 'boolean' ? null : rawValue;
     setEditSession({
@@ -99,11 +110,15 @@ export default function InvoiceDetail({
     setModalVisible(true);
   };
 
-  const handleSaveInfo = async (key: string, newValue: string | number | null | undefined) => {
+  const handleSaveInfo = async (key: string, newValue: any) => {
     try {
       const updatedInvoiceData = { ...invoice, [key]: newValue };
+      const assignedToId =
+        typeof updatedInvoiceData.assignedTo === "object"
+          ? updatedInvoiceData.assignedTo?._id
+          : updatedInvoiceData.assignedTo;
 
-      const formData = {
+      const formData: any = {
         customerName: updatedInvoiceData.customerName,
         customerAddress: updatedInvoiceData.customerAddress,
         customerPhone: updatedInvoiceData.customerPhone,
@@ -112,40 +127,31 @@ export default function InvoiceDetail({
         totalAmount: updatedInvoiceData.totalAmount,
         billing_period: updatedInvoiceData.billing_period,
         recordBookCode: updatedInvoiceData.recordBookCode,
-        assignedTo:
-          typeof updatedInvoiceData.assignedTo === "object"
-            ? updatedInvoiceData.assignedTo?._id
-            : updatedInvoiceData.assignedTo,
       };
+      if (assignedToId) formData.assignedTo = assignedToId;
 
-      const response = await updateInvoice(formData, invoice.invoiceNumber);
+      const response = await updateInvoice(invoice._id, formData);
+      const newInvoiceFromServer = response?.invoice || response?.data?.invoice || updatedInvoiceData;
 
-      if (response && response.invoice) {
-        const newInvoiceFromServer = response.data.invoice;
-
-        if (onUpdateInfo) {
-          if (newInvoiceFromServer) {
-            if (
-              newInvoiceFromServer.assignedTo &&
-              typeof newInvoiceFromServer.assignedTo === "string" &&
-              invoice.assignedTo &&
-              typeof invoice.assignedTo === "object"
-            ) {
-              newInvoiceFromServer.assignedTo = invoice.assignedTo;
-            }
-
-            onUpdateInfo(newInvoiceFromServer);
-          } else {
-            onUpdateInfo(updatedInvoiceData as InvoiceInfo);
-          }
+      if (onUpdateInfo) {
+        if (
+          newInvoiceFromServer?.assignedTo &&
+          typeof newInvoiceFromServer.assignedTo === "string" &&
+          invoice.assignedTo &&
+          typeof invoice.assignedTo === "object"
+        ) {
+          newInvoiceFromServer.assignedTo = invoice.assignedTo;
         }
-        showMessage({ message: "Cập nhật thành công", type: "success" });
-      } else {
-        showMessage({ message: `Lỗi + ${response.data.message}`, type: "warning" });
+        onUpdateInfo(newInvoiceFromServer as InvoiceInfo);
       }
-    } catch (error) {
-      console.error("Lỗi gọi API:", error);
-      alert("Có lỗi xảy ra khi cập nhật.");
+
+      showMessage({ message: "Cập nhật thành công", type: "success" });
+    } catch (error: any) {
+      console.error("Update failed:", error);
+      showMessage({
+        message: error?.message || "Có lỗi xảy ra khi cập nhật.",
+        type: "danger",
+      });
     }
   };
 
@@ -182,7 +188,7 @@ export default function InvoiceDetail({
             textAlign: "center",
           }}
         >
-          Thông tin hoá đơn
+          Thông tin hóa đơn
         </Text>
 
         <InfoRow label="Mã KH" value={invoice.invoiceNumber} />
@@ -191,13 +197,13 @@ export default function InvoiceDetail({
           value={invoice.customerName}
           labelStyle={{ fontWeight: "700", color: "#1e293b" }}
           valueStyle={{ fontWeight: "700", color: "#1e293b" }}
-          onPress={() => startEdit("customerName", "Tên", "text")}
+          onPress={canEditInvoice ? () => startEdit("customerName", "Tên", "text") : undefined}
         />
         <InfoRow label="Số điện thoại" value={invoice.customerPhone} />
         <InfoRow
           label="Địa chỉ"
           value={invoice.customerAddress}
-          onPress={() => startEdit("customerAddress", "Địa chỉ", "text")}
+          onPress={canEditInvoice ? () => startEdit("customerAddress", "Địa chỉ", "text") : undefined}
         />
         <InfoRow label="Kỳ" value={invoice.billing_period} />
         
@@ -243,7 +249,7 @@ export default function InvoiceDetail({
         <InfoRow
           label="Trạm"
           value={invoice.recordBookCode as string}
-          onPress={() => startEdit("recordBookCode", "Trạm", "text")}
+          onPress={canEditInvoice ? () => startEdit("recordBookCode", "Trạm", "text") : undefined}
         />
         <InfoRow
           label="Ngày thu"
@@ -261,3 +267,4 @@ export default function InvoiceDetail({
     </>
   );
 }
+

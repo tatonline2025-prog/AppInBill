@@ -1,4 +1,4 @@
-// frontend/services/api.ts
+﻿// frontend/services/api.ts
 import { api } from "@/context/AuthContext";
 import { FetchInvoiceResponse, InvoiceInfo } from "@/types/invoice";
 
@@ -220,11 +220,13 @@ export const fetchTop3Stations = async (collectionStatus: string) => {
   }
 };
 
-export const updateInvoice = async (formData: any, invoiceNumber: string) => {
+export const updateInvoice = async (invoiceId: string, formData: any) => {
   try {
-    const res = await api.put(`/api/invoices/update/${invoiceNumber}`, formData);
+    // Backend contract: PUT /api/invoices/update/:invoiceId and body { formData }
+    const res = await api.put(`/api/invoices/update/${invoiceId}`, { formData });
     return res.data;
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Update invoice error:", error.response?.data || error);
     handleApiError(error, "Cập nhật thông tin thất bại");
   }
 };
@@ -275,3 +277,4 @@ export const fetchAllPaidInvoices_API = async (
     handleApiError(error, "Lỗi khi lấy danh sách hóa đơn đã đóng cước");
   }
 };
+

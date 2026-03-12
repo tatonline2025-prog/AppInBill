@@ -3,6 +3,7 @@ import { DynamicNotiInvoiceLayout } from "@/components/InvoiceLayout";
 import { Text } from "@/components/StyledText";
 import { useAuth } from "@/context/AuthContext";
 import { useFont } from "@/context/FontContext";
+import { useInvoices } from "@/context/InvoiceContext";
 import { InvoiceLayoutItem } from "@/types/invoice-layout";
 import { MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
@@ -61,7 +62,8 @@ const defaultLayout: InvoiceLayoutItem[] = [
 ];
 
 export default function ProfileScreen() {
-  const { user, logout, refreshUser } = useAuth(); // Lấy thêm token và setUser để cập nhật
+  const { user, logout, refreshUser } = useAuth();
+  const { refetchInvoices } = useInvoices();
   const router = useRouter();
 
   // --- STATE QUẢN LÝ VIỆC SỬA PHÍ ---
@@ -104,6 +106,7 @@ export default function ProfileScreen() {
         showMessage({ message: "Cập nhật phí thành công!", type: "success" });
 
         await refreshUser();
+        await refetchInvoices(); // Refetch để cập nhật collectionFee trong invoice.assignedTo
         setModalVisible(false);
       }
     } catch (error) {

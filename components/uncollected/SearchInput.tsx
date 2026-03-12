@@ -229,7 +229,7 @@ export default function SearchInput({
           )}
         </View>
         <Text style={{ color: showPaidFilter ? "#2563eb" : "#475569", fontWeight: "600" }}>
-          {isAdmin ? "Xem hóa đơn đã đóng cước (tất cả)" : "Xem hóa đơn đã đóng cước của tôi"}
+          {"Xem hóa đơn đã đóng cước (tất cả)"}
         </Text>
       </Pressable>
     </View>

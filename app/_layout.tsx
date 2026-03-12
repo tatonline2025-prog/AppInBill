@@ -1,5 +1,6 @@
 import { AuthProvider } from "@/context/AuthContext";
 import { FontProvider } from "@/context/FontContext";
+import { InvoiceProvider } from "@/context/InvoiceContext";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -37,31 +38,33 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <FontProvider>
-          <Stack
-            screenOptions={{
-              headerShown: true,
-              headerTitleStyle: { fontFamily: "Roboto-Bold" },
-              headerBackTitleStyle: { fontFamily: "Roboto-Regular" },
-              headerStyle: { backgroundColor: "#2563eb" },
-              headerTintColor: "#fff",
-            }}
-          >
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="invoices" options={{ headerShown: false }} />
-            <Stack.Screen name="invoiceLayoutConfigScreen" options={{ headerShown: false }} />
-          </Stack>
-          <FlashMessage
-            position="top"
-            statusBarHeight={40}
-            titleStyle={{ fontFamily: "Roboto-Bold" }}
-            textStyle={{ fontFamily: "Roboto-Regular" }}
-          />
-        </FontProvider>
-      </AuthProvider>
+      <InvoiceProvider>
+        <AuthProvider>
+          <FontProvider>
+            <Stack
+              screenOptions={{
+                headerShown: true,
+                headerTitleStyle: { fontFamily: "Roboto-Bold" },
+                headerBackTitleStyle: { fontFamily: "Roboto-Regular" },
+                headerStyle: { backgroundColor: "#2563eb" },
+                headerTintColor: "#fff",
+              }}
+            >
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="login" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="invoices" options={{ headerShown: false }} />
+              <Stack.Screen name="invoiceLayoutConfigScreen" options={{ headerShown: false }} />
+            </Stack>
+            <FlashMessage
+              position="top"
+              statusBarHeight={40}
+              titleStyle={{ fontFamily: "Roboto-Bold" }}
+              textStyle={{ fontFamily: "Roboto-Regular" }}
+            />
+          </FontProvider>
+        </AuthProvider>
+      </InvoiceProvider>
     </GestureHandlerRootView>
   );
 }

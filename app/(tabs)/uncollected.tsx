@@ -163,14 +163,24 @@ export default function Uncollected() {
           }
 
           try {
-            await handleToggle_API(targetInvoice._id, "collectionStatus");
+            const response = await handleToggle_API(targetInvoice._id, "collectionStatus");
             showMessage({ message: "Đã xác nhận thu thành công!", type: "success" });
 
             // Cập nhật invoice hiện tại với trạng thái "collected" thay vì xóa nó đi
-            const updatedInvoice = {
+            const currentAssigned =
+              typeof targetInvoice.assignedTo === "object" && targetInvoice.assignedTo
+                ? targetInvoice.assignedTo
+                : null;
+
+            const updatedInvoice = response?.data?.invoice || {
               ...targetInvoice,
               collectionStatus: "collected" as const,
               collectionDate: new Date().toISOString(),
+              assignedTo: {
+                _id: user?._id || currentAssigned?._id,
+                fullName: user?.fullName || currentAssigned?.fullName,
+                collectionFee: user?.collectionFee ?? currentAssigned?.collectionFee,
+              },
             };
             setInvoice(updatedInvoice);
 
@@ -210,7 +220,7 @@ export default function Uncollected() {
         style: "destructive",
         onPress: async () => {
           try {
-            await handleToggleIsPaid_API(targetInvoice._id);
+            const response = await handleToggleIsPaid_API(targetInvoice._id);
             // Hiển thị message tùy theo trạng thái mới
             const newIsPaid = !targetInvoice.isPaid;
             showMessage({ 
@@ -219,9 +229,19 @@ export default function Uncollected() {
             });
 
             // Cập nhật invoice hiện tại thay vì xóa nó đi
-            const updatedInvoice = {
+            const currentAssigned =
+              typeof targetInvoice.assignedTo === "object" && targetInvoice.assignedTo
+                ? targetInvoice.assignedTo
+                : null;
+
+            const updatedInvoice = response?.data?.invoice || {
               ...targetInvoice,
               isPaid: !targetInvoice.isPaid,
+              assignedTo: {
+                _id: user?._id || currentAssigned?._id,
+                fullName: user?.fullName || currentAssigned?.fullName,
+                collectionFee: user?.collectionFee ?? currentAssigned?.collectionFee,
+              },
             };
             setInvoice(updatedInvoice);
 

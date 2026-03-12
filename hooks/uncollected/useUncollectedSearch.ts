@@ -13,6 +13,13 @@ type SearchResult = {
   totalAmount: number;
 };
 
+const normalizeText = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
 const parseSearchResponse = (res: any): SearchResult => {
   // Backend responses are not fully consistent across endpoints.
   // Normalize everything to one shape for UI consumption.
@@ -67,11 +74,8 @@ export const useUncollectedSearch = (user: IUser | null) => {
       try {
         setIsLoading(true);
 
-        // Xác định assignedUserId và province:
-        // - Admin: KHÔNG truyền assignedUserId (xem tất cả)
-        // - Admin: KHÔNG truyền province (xem tất cả các tỉnh)
-        // - User: Truyền assignedUserId và province (xem của mình)
-        const assignedUserId = isAdmin ? undefined : (user?._id || undefined);
+        // Uncollected invoices must be visible for all users.
+        const assignedUserId = undefined;
         const userProvince = isAdmin ? undefined : (user?.province || undefined);
 
 
@@ -187,7 +191,35 @@ export const useUncollectedSearch = (user: IUser | null) => {
           isPaidValue
         );
 
-        return parseSearchResponse(res);
+        const parsed = parseSearchResponse(res);
+
+        // Fallback for customer-name search when backend does not support searchType=customerName fully.
+        if (type === "customerName" && parsed.data.length === 0) {
+          const fallbackRes = await searchInvoice_API(
+            "not_collected",
+            assignedUserId,
+            userProvince,
+            normalizedCode,
+            "customer",
+            pageToFetch,
+            50,
+            isPaidValue
+          );
+
+          const fallbackParsed = parseSearchResponse(fallbackRes);
+          const keyword = normalizeText(normalizedCode);
+          const filtered = fallbackParsed.data.filter((item) =>
+            normalizeText(item.customerName || "").includes(keyword)
+          );
+
+          return {
+            data: filtered,
+            total: filtered.length,
+            totalAmount: filtered.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0),
+          };
+        }
+
+        return parsed;
       } catch (error) {
         console.error("Search error:", error);
         return { data: [], total: 0, totalAmount: 0 };
@@ -239,7 +271,7 @@ export const useUncollectedSearch = (user: IUser | null) => {
     isSelectionRef.current = true;
     setCustomerCode(code);
     setSuggestions([]);
-    handleSearch(code);
+    handleSearch(code, searchType);
   };
 
   // Hàm xử lý khi toggle checkbox lọc isPaid
