@@ -376,13 +376,18 @@ export default function Uncollected() {
       {receiptPrinter?.printerModalProps?.visible && <PrinterModal {...receiptPrinter.printerModalProps} />}
       {/* 4. Layout in (ẩn) */}
       {/* 1. Layout Thông Báo */}
-      <DynamicNotiInvoiceLayout forwardedRef={notiViewShotRef} invoice={invoice} layout={notiLayout} visible={false} />
+      <DynamicNotiInvoiceLayout
+        forwardedRef={notiViewShotRef}
+        invoice={invoice}
+        layout={notiLayout}
+        visible={notiPrinter.isLayoutVisible}
+      />
       {/* 2. Layout Biên Nhận (Thêm mới) */}
       <DynamicInvoiceLayout
         forwardedRef={receiptViewShotRef}
         invoice={invoice}
         layout={receiptLayout}
-        visible={false}
+        visible={receiptPrinter.isLayoutVisible}
       />
     </ScrollView>
   );

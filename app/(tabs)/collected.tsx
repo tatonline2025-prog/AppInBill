@@ -120,7 +120,7 @@ export default function Collected() {
   } = useCollectedManager(user);
 
   const viewShotRef = useRef<ViewShot>(null);
-  const { handlePrintInvoice, printerModalProps } = useInvoicePrinter(viewShotRef, selectedInvoice);
+  const { handlePrintInvoice, printerModalProps, isLayoutVisible } = useInvoicePrinter(viewShotRef, selectedInvoice);
 
   // --- Local State ---
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -472,7 +472,7 @@ export default function Collected() {
         forwardedRef={viewShotRef}
         invoice={selectedInvoice}
         layout={invoiceLayout || DEFAULT_INVOICE_LAYOUT}
-        visible={false}
+        visible={isLayoutVisible}
       />
     </View>
   );

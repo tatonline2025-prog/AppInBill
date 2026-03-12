@@ -13,6 +13,7 @@ interface PrinterModalProps {
   printers: PrinterDevice[];
   isScanning: boolean;
   isPrinting?: boolean;
+  isLayoutVisible?: boolean; // 🔧 NEW: Show layout prep status
   onClose: () => void;
   onScan: () => void;
   onSelectPrinter: (printer: PrinterDevice, invoice?: InvoiceInfo | null) => void;
@@ -24,12 +25,13 @@ export default function PrinterModal({
   printers,
   isScanning,
   isPrinting = false,
+  isLayoutVisible = false, // 🔧 NEW
   onClose,
   onScan,
   onSelectPrinter,
   currentInvoice,
 }: PrinterModalProps) {
-  const isProcessing = isScanning || isPrinting;
+  const isProcessing = isScanning || isPrinting || isLayoutVisible;
 
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
@@ -39,12 +41,16 @@ export default function PrinterModal({
             {isPrinting ? "Đang in hóa đơn" : "Chọn máy in Bluetooth"}
           </Text>
 
-          {/* Trạng thái đang xử lý (quét hoặc in) */}
+          {/* Trạng thái đang xử lý (quét/in/layout) */}
           {isProcessing && (
             <View style={styles.scanningContainer}>
               <ActivityIndicator size="small" color="#2563eb" />
               <Text style={styles.scanningText}>
-                {isPrinting ? "Đang in, vui lòng chờ..." : "Đang quét..."}
+                {isLayoutVisible 
+                  ? "⏳ Chuẩn bị layout hóa đơn..." 
+                  : isPrinting 
+                    ? "Đang in, vui lòng chờ..." 
+                    : "Đang quét..."}
               </Text>
             </View>
           )}

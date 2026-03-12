@@ -49,7 +49,6 @@ export const DefaultInvoiceLayout = ({
     position: "absolute" as const, // Phải có as const để ViewShot chấp nhận
     top: -9999,
     left: -9999,
-    opacity: 0,
   };
 
   const billContainerStyle = {
@@ -61,7 +60,11 @@ export const DefaultInvoiceLayout = ({
   };
 
   return (
-    <ViewShot ref={forwardedRef} options={{ format: "png", quality: 1 }} style={hiddenViewShotStyle}>
+    <ViewShot
+      ref={forwardedRef}
+      options={{ format: "png", quality: 1 }}
+      style={hiddenViewShotStyle}
+    >
       <View style={billContainerStyle}>
         <BillHeader label="BIÊN NHẬN THANH TOÁN" />
         <BillBillingPeriod invoice={invoice} label="Kỳ" />
@@ -118,20 +121,17 @@ export const DynamicInvoiceLayout = ({
     return BlockMap[block.id] || null;
   };
 
-  // Quan trọng: Sử dụng visibility: hidden thay vì opacity: 0 để ViewShot có thể capture
-  // opacity: 0 sẽ không được render bởi React Native ViewShot
   const dynamicViewShotStyle = {
     backgroundColor: "#fff",
     width: viewShotWidthInDp,
     minHeight: 200, // Đảm bảo có chiều cao tối thiểu
     ...(visible
       ? { opacity: 1, position: "relative" as const }
-      : {
+        : {
           position: "absolute" as const,
           top: -9999,
           left: -9999,
           width: viewShotWidthInDp,
-          opacity: 0,
         }),
   };
 
@@ -225,7 +225,6 @@ export const DynamicNotiInvoiceLayout = ({
           top: -9999,
           left: -9999,
           width: viewShotWidthInDp,
-          opacity: 0,
         }),
   };
 

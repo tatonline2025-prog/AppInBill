@@ -2,6 +2,13 @@ import { captureRef } from "react-native-view-shot";
 
 // Hàm chuyển bill component (ref) thành ảnh Base64 thô
 export const generateBillImage = async (ref: any, timeoutMs: number = 5000): Promise<string | null> => {
+  const isValidBase64 = (value: unknown): value is string => {
+    if (typeof value !== "string") return false;
+    const trimmed = value.trim();
+    // Do not enforce very large length; small receipts can still be valid images.
+    return trimmed.length > 64;
+  };
+
   const waitForRefReady = async (maxWaitMs: number): Promise<any | null> => {
     const start = Date.now();
     while (Date.now() - start < maxWaitMs) {
@@ -11,27 +18,26 @@ export const generateBillImage = async (ref: any, timeoutMs: number = 5000): Pro
     return null;
   };
 
-  const viewShotRef = await waitForRefReady(1500);
+  const viewShotRef = await waitForRefReady(3000); // 🔧 Increased from 1.5s
   if (!viewShotRef) {
-    console.error("ViewShot ref is not ready");
+    console.error("[BILL CAPTURE] ViewShot ref timeout after 3s - layout not ready");
     return null;
   }
+  console.log("[BILL CAPTURE] Ref ready, starting capture...");
 
-  const captureOnce = async (): Promise<string> => {
-    if (typeof viewShotRef.capture === "function") {
-      return viewShotRef.capture({
-        format: "png",
-        quality: 1,
-        result: "base64",
-        snapshotContentContainer: true,
-      });
-    }
+  const captureByViewShot = async (): Promise<string> => {
+    return viewShotRef.capture({
+      format: "png",
+      quality: 1,
+      result: "base64",
+    });
+  };
 
+  const captureByNativeRef = async (): Promise<string> => {
     return captureRef(viewShotRef, {
       format: "png",
       quality: 1,
       result: "base64",
-      snapshotContentContainer: true,
     });
   };
 
@@ -42,19 +48,34 @@ export const generateBillImage = async (ref: any, timeoutMs: number = 5000): Pro
     ]);
 
   try {
-    const base64 = await withTimeout(captureOnce());
-    if (base64 && base64.length > 1000) return base64;
+    const strategies: Array<() => Promise<string>> = [];
 
-    await new Promise((resolve) => setTimeout(resolve, 120));
-    const retryBase64 = await withTimeout(captureOnce());
-    if (retryBase64 && retryBase64.length > 1000) return retryBase64;
+    if (typeof viewShotRef.capture === "function") {
+      strategies.push(captureByViewShot);
+    }
+    strategies.push(captureByNativeRef);
+    if (typeof viewShotRef.capture === "function") {
+      // Retry ViewShot path at the end as a fallback.
+      strategies.push(captureByViewShot);
+    }
 
-    await new Promise((resolve) => setTimeout(resolve, 220));
-    const retry2Base64 = await withTimeout(captureOnce());
-    return retry2Base64 || null;
+    for (let i = 0; i < 4; i++) {
+      const strategy = strategies[i % strategies.length];
+      if (i > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 120 + i * 120));
+      }
+      try {
+        const base64 = await withTimeout(strategy());
+        console.log(`[BILL CAPTURE] Try${i + 1} base64 length:`, base64?.length || 0);
+        if (isValidBase64(base64)) return base64;
+      } catch (error: any) {
+        console.warn(`[BILL CAPTURE] Try${i + 1} failed:`, error?.message || error);
+      }
+    }
+
+    return null;
   } catch (err) {
     console.error("Failed to capture bill image:", err);
     return null;
   }
 };
-

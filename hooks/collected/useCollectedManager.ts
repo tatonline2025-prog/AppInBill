@@ -7,7 +7,45 @@ import { showMessage } from "react-native-flash-message";
 
 type SearchType = "customer" | "station" | "customerName";
 
+const isSameLocalDate = (dateValue: string | Date | undefined, targetDate: Date) => {
+  if (!dateValue) return false;
+  const d = new Date(dateValue);
+  if (Number.isNaN(d.getTime())) return false;
+  return (
+    d.getFullYear() === targetDate.getFullYear() &&
+    d.getMonth() === targetDate.getMonth() &&
+    d.getDate() === targetDate.getDate()
+  );
+};
+
+const sumTotalAmount = (items: InvoiceInfo[]) =>
+  items.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0);
+
+const parseSearchResponse = (res: any) => {
+  const topLevelData = Array.isArray(res?.data) ? res.data : null;
+  const nestedData = Array.isArray(res?.data?.data) ? res.data.data : null;
+  const directData = Array.isArray(res) ? res : null;
+  const data = topLevelData || nestedData || directData || [];
+
+  const total =
+    Number(res?.total) ||
+    Number(res?.summary?.totalInvoices) ||
+    Number(res?.data?.total) ||
+    data.length ||
+    0;
+
+  const totalPages = Number(res?.totalPages) || Number(res?.data?.totalPages) || 1;
+  const totalAmount =
+    Number(res?.totalAmount) ||
+    Number(res?.summary?.totalAmount) ||
+    Number(res?.data?.totalAmount) ||
+    0;
+
+  return { data, total, totalPages, totalAmount };
+};
+
 export const useCollectedManager = (user: IUser | null) => {
+  const isAdmin = user?.role === "admin";
   const [searchText, setSearchText] = useState("");
   const [searchType, setSearchType] = useState<SearchType>("customer");
 
@@ -36,9 +74,20 @@ export const useCollectedManager = (user: IUser | null) => {
     const timeout = setTimeout(async () => {
       if (!user) return;
       try {
+        const normalizedSearchText = searchType === "station" ? searchText.trim().toUpperCase() : searchText.trim();
+        // Search by station should not be restricted by collector id.
+        const assignedUserId = searchType === "station" ? undefined : (isAdmin ? undefined : user._id);
+        const userProvince = isAdmin ? undefined : user.province;
+
         // Chỉ lấy gợi ý, không set vào invoiceData chính
-        const res = await searchInvoice_API("collected", user._id, user.province, searchText, searchType);
-        const data = res.data || [];
+        const res = await searchInvoice_API(
+          "collected",
+          assignedUserId,
+          userProvince,
+          normalizedSearchText,
+          searchType
+        );
+        const { data } = parseSearchResponse(res);
 
         if (searchType === "station") {
           // Lọc trùng mã trạm
@@ -58,7 +107,7 @@ export const useCollectedManager = (user: IUser | null) => {
     return () => clearTimeout(timeout);
     // ✅ Bỏ selectedDate khỏi dependency array vì nó thay đổi liên tục khi chọn ngày
     // Chỉ trigger lại khi searchText hoặc searchType hoặc user thay đổi
-  }, [searchText, searchType, user]);
+  }, [searchText, searchType, user, isAdmin]);
 
   const handleTextChange = (text: string) => {
     setSearchText(text);
@@ -78,19 +127,24 @@ export const useCollectedManager = (user: IUser | null) => {
   };
 
   // --- 2. Tìm kiếm theo Text (Button Search) ---
-  const searchByText = async (codeInput?: string, isLoadMore: boolean = false) => {
+  const searchByText = async (codeInput?: string, isLoadMore: boolean = false, dateFilter?: Date | null) => {
     const code = codeInput ?? searchText;
     if (!user || !code.trim()) {
       showMessage({ message: "Vui lòng nhập thông tin tìm kiếm", type: "warning" });
       return;
     }
 
+    const activeDate = dateFilter !== undefined ? dateFilter : selectedDate;
+    const normalizedCode = searchType === "station" ? code.trim().toUpperCase() : code.trim();
+    // Search by station should not be restricted by collector id.
+    const assignedUserId = searchType === "station" ? undefined : (isAdmin ? undefined : user._id);
+    const userProvince = isAdmin ? undefined : user.province;
+
     if (isLoadMore) {
       setIsLoadingMore(true);
     } else {
       setIsLoading(true);
       setSuggestions([]);
-      setSelectedDate(null);
       setSelectedInvoice(null);
       setInvoiceData([]);
     }
@@ -98,28 +152,64 @@ export const useCollectedManager = (user: IUser | null) => {
     const pageToFetch = isLoadMore ? currentPage + 1 : 1;
 
     try {
-      const res = await searchInvoice_API("collected", user._id, user.province, code, searchType, pageToFetch, 50);
+      const res = await searchInvoice_API(
+        "collected",
+        assignedUserId,
+        userProvince,
+        normalizedCode,
+        searchType,
+        pageToFetch,
+        50
+      );
 
-      const newData = res.data || [];
-      const totalPagesServer = res.totalPages || 1;
-      const amount = res.totalAmount || 0;
+      const parsed = parseSearchResponse(res);
+      const serverData = parsed.data;
+      const filteredData =
+        searchType === "station" && activeDate
+          ? serverData.filter((item: InvoiceInfo) => isSameLocalDate(item.collectionDate as any, activeDate))
+          : serverData;
+
+      const totalPagesServer = parsed.totalPages;
+      const amount =
+        searchType === "station" && activeDate ? sumTotalAmount(filteredData) : parsed.totalAmount || 0;
+      const totalInvoicesValue =
+        searchType === "station" && activeDate ? filteredData.length : (parsed.total || filteredData.length);
 
       if (isLoadMore) {
-        setInvoiceData((prev) => [...prev, ...newData]);
+        setInvoiceData((prev) => [...prev, ...filteredData]);
       } else {
-        setInvoiceData(newData);
+        setInvoiceData(filteredData);
 
-        if (newData.length === 0) {
-          showMessage({ message: "Không tìm thấy hóa đơn nào.", type: "danger" });
+        if (filteredData.length === 0) {
+          if (searchType === "station") {
+            const stationCode = code.trim().toUpperCase();
+            if (activeDate) {
+              showMessage({
+                message: `Không có hóa đơn đã thu tại mã trạm ${stationCode} trong ngày ${activeDate.toLocaleDateString("vi-VN")}.`,
+                type: "danger",
+              });
+            } else {
+              showMessage({
+                message: `Không có hóa đơn đã thu ở mã trạm ${stationCode}.`,
+                type: "danger",
+              });
+            }
+          } else {
+            showMessage({ message: "Không tìm thấy hóa đơn nào.", type: "danger" });
+          }
         } else {
           if (searchType === "station") {
-            showMessage({ message: `Tìm thấy ${res.total || newData.length} hóa đơn.`, type: "success" });
+            const suffix = activeDate ? ` (lọc ngày ${activeDate.toLocaleDateString("vi-VN")})` : "";
+            showMessage({
+              message: `Tìm thấy ${totalInvoicesValue} hóa đơn đã thu tại mã trạm.${suffix}`,
+              type: "success",
+            });
           } else {
             showMessage({ message: `Tìm thấy thông tin hóa đơn.`, type: "success" });
           }
 
           if (searchType === "customer") {
-            const exact = newData.find((i: any) => i.invoiceNumber?.toLowerCase() === code.toLowerCase());
+            const exact = filteredData.find((i: any) => i.invoiceNumber?.toLowerCase() === normalizedCode.toLowerCase());
             if (exact) setSelectedInvoice(exact);
           }
         }
@@ -128,7 +218,7 @@ export const useCollectedManager = (user: IUser | null) => {
       setCurrentPage(pageToFetch);
       setTotalPages(totalPagesServer);
       setTotalAmount(amount);
-      setTotalInvoices(res.total);
+      setTotalInvoices(totalInvoicesValue);
     } catch (error) {
       console.error(error);
       showMessage({ message: "Lỗi tìm kiếm", type: "danger" });
@@ -141,6 +231,13 @@ export const useCollectedManager = (user: IUser | null) => {
   // --- 3. Tìm kiếm theo Ngày ---
   const searchByDate = async (date: Date, isLoadMore: boolean = false) => {
     if (!user) return;
+
+    // Nếu đang tìm theo mã trạm + có searchText thì lọc theo cả mã trạm và ngày.
+    if (searchType === "station" && searchText.trim()) {
+      setSelectedDate(date);
+      await searchByText(searchText, isLoadMore, date);
+      return;
+    }
 
     // Nếu là load more thì dùng state isLoadingMore để không che toàn màn hình
     if (isLoadMore) {

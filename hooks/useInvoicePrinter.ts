@@ -16,7 +16,7 @@ interface PrinterDevice {
 }
 
 const SCAN_TIMEOUT = 5000;
-const IMAGE_GENERATION_TIMEOUT = 8000;
+const IMAGE_GENERATION_TIMEOUT = 12000;
 const PRINT_TIMEOUT = 15000;
 const READY_CACHE_TTL = 30000;
 const SCAN_WATCHDOG_TIMEOUT = 12000;
@@ -40,6 +40,7 @@ export const useInvoicePrinter = (
   const [availablePrinters, setAvailablePrinters] = useState<PrinterDevice[]>([]);
   const [currentInvoice, setCurrentInvoice] = useState<InvoiceInfo | null>(invoice || null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isLayoutVisible, setIsLayoutVisible] = useState(false);
 
   const isMountedRef = useRef(true);
   const isStartingRef = useRef(false);
@@ -232,15 +233,24 @@ export const useInvoicePrinter = (
       isConnected = true;
       await new Promise((resolve) => setTimeout(resolve, 650));
 
+      // 🔧 FIX: Make layout visible + wait render before capture
+      setIsLayoutVisible(true);
+      await new Promise((resolve) => setTimeout(resolve, 1200)); // Layout render + fonts load
+      await new Promise((resolve) => setTimeout(resolve, 0)); // next tick
+
       const base64Image = await withTimeout(
         generateBillImage(viewShotRef),
         IMAGE_GENERATION_TIMEOUT,
         "Bill image generation timeout."
       );
 
+      setIsLayoutVisible(false);
+
       if (!base64Image) {
-        throw new Error("Cannot generate bill image. Print layout is not ready.");
+        console.error("[PRINT] Capture failed. Ref ready?", !!viewShotRef.current);
+        throw new Error("Cannot generate bill image. Layout ref or capture failed.");
       }
+      console.log("[PRINT] Captured success, base64 length:", base64Image.length);
 
       try {
         await withTimeout(printImage(base64Image), PRINT_TIMEOUT, "Print timeout.");
@@ -269,6 +279,8 @@ export const useInvoicePrinter = (
         Alert.alert("Print error", errorMsg);
       }
     } finally {
+      setIsLayoutVisible(false);
+
       if (isConnected) {
         try {
           await BLEPrinter.closeConn();
@@ -329,11 +341,13 @@ export const useInvoicePrinter = (
     updateInvoice,
     currentInvoice,
     isPrinting,
+    isLayoutVisible,
     printerModalProps: {
       visible: showPrinterManager,
       printers: availablePrinters,
       isScanning,
       isPrinting,
+      isLayoutVisible, // 🔧 NEW: Pass to Modal UI
       currentInvoice,
       onClose: () => {
         if (!isPrinting) {

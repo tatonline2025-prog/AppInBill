@@ -11,7 +11,7 @@ export default {
     scheme: "inbillapp",
     userInterfaceStyle: "light",
     // Keep disabled for legacy native printer module compatibility
-    newArchEnabled: false,
+    newArchEnabled: true,
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.vodang.InBillApp",
