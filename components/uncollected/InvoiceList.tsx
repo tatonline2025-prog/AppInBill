@@ -46,6 +46,11 @@ const InvoiceItem = memo(
     actions: any;
     onUpdateInfo?: (updatedInvoice: InvoiceInfo) => void;
   }) {
+    const handlePrintNotice = (e: any) => {
+      e.stopPropagation();
+      actions.onPrint(item);
+    };
+
     const handlePrintInvoice = (e: any) => {
       e.stopPropagation();
       actions.onPrintInvoice(item);
@@ -78,10 +83,10 @@ const InvoiceItem = memo(
           activeOpacity={0.7}
           onPress={() => onToggle(item)}
         >
-          {/* Layout: 70% Trái = Thông tin, 30% Phải = Buttons */}
+          {/* Layout: 60% Trái = Thông tin, 40% Phải = Buttons */}
           <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-            {/* Bên Trái (70%): Thông tin */}
-            <View style={{ flex: 70, marginRight: 8 }}>
+            {/* Bên Trái (60%): Thông tin - Giảm diện tích */}
+            <View style={{ flex: 2.5, marginRight: 8 }}>
               <Text style={{ fontWeight: "600", color: "#2563eb" }}>
                 {displayInvoiceNumber} - {Number(item.totalAmount).toLocaleString("vi-VN")}
               </Text>
@@ -95,39 +100,57 @@ const InvoiceItem = memo(
               )}
             </View>
 
-            {/* Bên Phải (30%): Buttons + Chi tiết */}
-            <View style={{ flex: 30 }}>
-              {/* 3 Button icons trên 1 hàng ngang */}
-              <View style={{ flexDirection: "row", gap: 4, marginBottom: 6 }}>
-                {/* Button In - máy in */}
+            {/* Bên Phải (40%): Buttons + Chi tiết */}
+            <View style={{ flex: 1.5 }}>
+              {/* 4 Button icons trên 1 hàng ngang - Giảm gap/padding */}
+              <View style={{ flexDirection: "row", gap: 2, marginBottom: 6 }}>
+                {/* Button In thông báo nhanh (mới) - cam */}
+                <TouchableOpacity
+                  onPress={handlePrintNotice}
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#f97316",
+                    paddingVertical: 6,
+                    borderRadius: 4,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 26,
+                  }}
+                >
+                  <Ionicons name="document-text-outline" size={14} color="#fff" />
+                </TouchableOpacity>
+
+                {/* Button In biên nhận - máy in */}
                 <TouchableOpacity
                   onPress={handlePrintInvoice}
                   style={{
                     flex: 1,
                     backgroundColor: "#2563eb",
-                    paddingVertical: 8,
+                    paddingVertical: 6,
                     borderRadius: 4,
                     alignItems: "center",
                     justifyContent: "center",
+                    minHeight: 26,
                   }}
                 >
-                  <Ionicons name="print" size={16} color="#fff" />
+                  <Ionicons name="print" size={14} color="#fff" />
                 </TouchableOpacity>
 
-                {/* Button Đã thu - V */}
+                {/* Button Đã thu - V (conditional) */}
                 {item.collectionStatus !== "collected" && item.totalAmount && item.totalAmount !== 0 && (
                   <TouchableOpacity
                     onPress={handleMarkCollected}
                     style={{
                       flex: 1,
                       backgroundColor: "#16a34a",
-                      paddingVertical: 8,
+                      paddingVertical: 6,
                       borderRadius: 4,
                       alignItems: "center",
                       justifyContent: "center",
+                      minHeight: 26,
                     }}
                   >
-                    <Ionicons name="checkmark" size={16} color="#fff" />
+                    <Ionicons name="checkmark" size={14} color="#fff" />
                   </TouchableOpacity>
                 )}
 
@@ -137,13 +160,14 @@ const InvoiceItem = memo(
                   style={{
                     flex: 1,
                     backgroundColor: item.isPaid ? "#f59e0b" : "#7c3aed",
-                    paddingVertical: 8,
+                    paddingVertical: 6,
                     borderRadius: 4,
                     alignItems: "center",
                     justifyContent: "center",
+                    minHeight: 26,
                   }}
                 >
-                  <Ionicons name={item.isPaid ? "close" : "close-circle"} size={16} color="#fff" />
+                  <Ionicons name={item.isPaid ? "close" : "close-circle"} size={14} color="#fff" />
                 </TouchableOpacity>
               </View>
 
