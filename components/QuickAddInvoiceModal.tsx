@@ -1,4 +1,4 @@
-import { quickAddInvoice } from "@/api/invoice.api";
+﻿import { quickAddInvoice } from "@/api/invoice.api";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
@@ -25,13 +25,16 @@ export default function QuickAddInvoiceModal({
   onClose,
   onSuccess,
 }: QuickAddInvoiceModalProps) {
-  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const prefixOptions = ["PB070900", "PB07000", "PB050900"];
+  const [selectedPrefix, setSelectedPrefix] = useState(prefixOptions[0]);
+  const [invoiceSuffix, setInvoiceSuffix] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const resetForm = () => {
-    setInvoiceNumber("");
+    setSelectedPrefix(prefixOptions[0]);
+    setInvoiceSuffix("");
     setCustomerName("");
     setTotalAmount("");
   };
@@ -43,9 +46,29 @@ export default function QuickAddInvoiceModal({
 
   const handleSubmit = async () => {
     // Validate required fields
-    if (!invoiceNumber.trim()) {
+    const trimmedSuffix = invoiceSuffix.trim();
+    if (!selectedPrefix) {
       showMessage({
-        message: "Vui lòng nhập mã hóa đơn",
+        message: "Vui lòng chọn prefix mã khách hàng",
+        type: "danger",
+      });
+      return;
+    }
+
+    const suffixRegex = /^\d{5}$/;
+    const fullInvoiceNumber = `${selectedPrefix}${trimmedSuffix}`;
+
+    console.log("=== DEBUG Mã KH (prefix + 5 số cuối) ===");
+    console.log("Prefix:", selectedPrefix);
+    console.log("Suffix Raw:", JSON.stringify(invoiceSuffix));
+    console.log("Suffix Trimmed:", trimmedSuffix);
+    console.log("Suffix Length:", trimmedSuffix.length);
+    console.log("Suffix Valid:", suffixRegex.test(trimmedSuffix));
+    console.log("Full:", fullInvoiceNumber);
+
+    if (!suffixRegex.test(trimmedSuffix)) {
+      showMessage({
+        message: "Vui lòng nhập đúng 5 số cuối của mã khách hàng",
         type: "danger",
       });
       return;
@@ -70,7 +93,7 @@ export default function QuickAddInvoiceModal({
     try {
       setIsLoading(true);
       await quickAddInvoice({
-        invoiceNumber: invoiceNumber.trim(),
+        invoiceNumber: fullInvoiceNumber,
         customerName: customerName.trim(),
         totalAmount: Number(totalAmount),
       });
@@ -126,21 +149,39 @@ export default function QuickAddInvoiceModal({
 
           {/* Form */}
           <View style={styles.form}>
-            {/* Mã hóa đơn */}
+            {/* Mã hóa đơn */
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                Mã hóa đơn <Text style={styles.required}>*</Text>
+Mã khách hàng (chọn prefix + 5 số cuối) <Text style={styles.required}>*</Text>
               </Text>
+              <View style={styles.prefixRow}>
+                {prefixOptions.map((prefix) => {
+                  const isSelected = prefix === selectedPrefix;
+                  return (
+                    <TouchableOpacity
+                      key={prefix}
+                      style={[styles.prefixButton, isSelected && styles.prefixButtonSelected]}
+                      onPress={() => setSelectedPrefix(prefix)}
+                    >
+                      <Text style={[styles.prefixButtonText, isSelected && styles.prefixButtonTextSelected]}>
+                        {prefix}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
               <TextInput
                 style={styles.input}
-                placeholder="Nhập mã hóa đơn"
-                value={invoiceNumber}
-                onChangeText={setInvoiceNumber}
+                placeholder="Nhập 5 số cuối (VD: 12345)"
+                value={invoiceSuffix}
+                onChangeText={setInvoiceSuffix}
+                keyboardType="numeric"
                 placeholderTextColor="#94a3b8"
+                maxLength={5}
               />
             </View>
 
-            {/* Tên khách hàng */}
+            /* Tên khách hàng */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
                 Tên khách hàng <Text style={styles.required}>*</Text>
@@ -249,6 +290,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#1e293b",
     backgroundColor: "#f8fafc",
+  },
+  prefixRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 10,
+  },
+  prefixButton: {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    backgroundColor: "#f8fafc",
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  prefixButtonSelected: {
+    borderColor: "#2563eb",
+    backgroundColor: "#dbeafe",
+  },
+  prefixButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#334155",
+  },
+  prefixButtonTextSelected: {
+    color: "#1d4ed8",
   },
   buttons: {
     flexDirection: "row",

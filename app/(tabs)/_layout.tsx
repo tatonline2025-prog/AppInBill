@@ -1,17 +1,24 @@
 import FloatingActionButton from "@/components/FloatingActionButton";
 import QuickAddInvoiceModal from "@/components/QuickAddInvoiceModal";
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
+import { showMessage } from "react-native-flash-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets(); // Lấy thông tin vùng an toàn
   const [modalVisible, setModalVisible] = useState(false);
 
+  const router = useRouter();
+
   const handleQuickAddSuccess = () => {
-    // Có thể thêm logic refresh ở đây nếu cần
+    router.navigate("/(tabs)/uncollected");
+    showMessage({
+      message: "Hóa đơn mới đã được thêm vào danh sách chưa thu!",
+      type: "success",
+    });
   };
 
   return (

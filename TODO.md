@@ -1,9 +1,26 @@
-# ADD PRINT NOTICE BUTTON TO INVOICELIST
-Status: Not started → In progress → ✅ Completed
+# ✅ Quick Add Invoice - Latest Fix (Test Now!)
 
-Approved Plan Breakdown:
-1. [x] Create TODO.md with steps ✅ 
-2. [x] Edit InvoiceList.tsx: Add orange onPrint button left of blue printInvoice, shrink left flex:70→60 (2.5), right→40 (1.5), tighten buttons (gap:2, paddingV:6, icon:14) ✅ 
-3. [x] Update TODO.md mark step 2 done ✅
-4. [x] Test: Run `npx expo start --clear`, navigate uncollected invoices: New orange document-text button left of blue print (fits no overflow), left info narrower (fits long names), taps trigger print flow, responsive ✅
-5. [x] attempt_completion ✅
+**Fixed**: Regex `/^PB\\d{11}$/` (PB + 11 digits = 13 chars) - matches \"PB07090012345\" exactly.
+
+**New Debug Logs** (submit → check **terminal/console**):
+```
+=== DEBUG Mã KH ===
+Raw input: \"...\"
+Trimmed: PB07090012345
+Length: 13
+Regex test: true
+```
+
+**Test** (press `r` to reload):
+1. FAB → `PB07090012345` + name + amount >0.
+2. Submit → logs show details.
+3. Regex true → API `quickAddInvoice` called.
+4. Success → toast + navigate to list.
+
+**If still \"định dạng sai\"**:
+- Share **console logs** (raw input may have spaces/zero-width chars).
+- Error now: \"PB + 11 số, 13 ký tự\".
+
+Backend errors logged separately.
+
+**App running** - test immediately!

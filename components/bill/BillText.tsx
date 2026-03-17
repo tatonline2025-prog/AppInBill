@@ -1,5 +1,6 @@
 // src/components/BillText.tsx
 // import { normalizeFont } from "@/utils/printer"; // Import từ file utils mới
+import { useFont } from "@/context/FontContext";
 import React from "react";
 import { Platform, StyleSheet } from "react-native";
 import CustomText from "../CustomText";
@@ -22,22 +23,28 @@ const normalizePrintTextStyle = (style: any) => {
 };
 
 // Component BillText cơ bản
-export const BillText = ({ children, style }: { children: React.ReactNode; style?: any }) => (
-  <CustomText
-    fixedSize={true}
-    allowFontScaling={false}
-    style={[
-      {
-        // Use system font for higher compatibility on captured thermal bitmap.
-        fontFamily: Platform.OS === "ios" ? "System" : undefined,
-        fontSize: 9,
-        color: "#000000",
-        lineHeight: 12,
-        includeFontPadding: false,
-      },
-      normalizePrintTextStyle(style),
-    ]}
-  >
-    {children}
-  </CustomText>
-);
+export const BillText = ({ children, style }: { children: React.ReactNode; style?: any }) => {
+  const { scale } = useFont();
+  const baseFontSize = 9 * scale; // Scale theo slider Account tab
+  const lineHeight = 12 * scale; // Scale lineHeight tương ứng
+
+  return (
+    <CustomText
+      fixedSize={true}
+      allowFontScaling={false}
+      style={[
+        {
+          // Use system font for higher compatibility on captured thermal bitmap.
+          fontFamily: Platform.OS === "ios" ? "System" : undefined,
+          fontSize: baseFontSize,
+          color: "#000000",
+          lineHeight: lineHeight,
+          includeFontPadding: false,
+        },
+        normalizePrintTextStyle(style),
+      ]}
+    >
+      {children}
+    </CustomText>
+  );
+};

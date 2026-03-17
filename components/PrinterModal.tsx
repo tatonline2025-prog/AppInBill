@@ -13,7 +13,8 @@ interface PrinterModalProps {
   printers: PrinterDevice[];
   isScanning: boolean;
   isPrinting?: boolean;
-  isLayoutVisible?: boolean; // 🔧 NEW: Show layout prep status
+  isLayoutVisible?: boolean;
+  savedPrinter?: PrinterDevice | null;  // New: from hook
   onClose: () => void;
   onScan: () => void;
   onSelectPrinter: (printer: PrinterDevice, invoice?: InvoiceInfo | null) => void;
@@ -25,7 +26,8 @@ export default function PrinterModal({
   printers,
   isScanning,
   isPrinting = false,
-  isLayoutVisible = false, // 🔧 NEW
+  isLayoutVisible = false,
+  savedPrinter,
   onClose,
   onScan,
   onSelectPrinter,
@@ -40,6 +42,15 @@ export default function PrinterModal({
           <Text style={styles.modalTitle}>
             {isPrinting ? "Đang in hóa đơn" : "Chọn máy in Bluetooth"}
           </Text>
+
+          {/* Saved printer hint */}
+          {savedPrinter && !isPrinting && !isProcessing && (
+            <View style={styles.savedPrinterHint}>
+              <Text style={styles.savedPrinterText}>
+                💾 Máy in đã lưu: <Text style={styles.savedPrinterName}>{savedPrinter.name}</Text>
+              </Text>
+            </View>
+          )}
 
           {/* Trạng thái đang xử lý (quét/in/layout) */}
           {isProcessing && (
@@ -139,8 +150,24 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: "center",
+  },
+  savedPrinterHint: {
+    backgroundColor: "#ecfdf5",
+    borderColor: "#10b981",
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  savedPrinterText: {
+    fontSize: 14,
+    color: "#166534",
+  },
+  savedPrinterName: {
+    fontWeight: "600",
   },
   scanningContainer: {
     flexDirection: "row",

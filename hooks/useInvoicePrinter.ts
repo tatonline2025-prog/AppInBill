@@ -2,11 +2,11 @@ import {
   isBluetoothEnabled,
   requestBluetoothPermissions,
 } from "@/components/BluetoothPermission";
-import { useAuth } from "@/context/AuthContext";
 import { InvoiceInfo } from "@/types/invoice";
 import { generateBillImage } from "@/utils/generateBillImage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useRef, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import { showMessage } from "react-native-flash-message";
 import { BLEPrinter } from "react-native-thermal-receipt-printer-image-qr";
 import ViewShot from "react-native-view-shot";
@@ -42,6 +42,8 @@ export const useInvoicePrinter = (
   const [currentInvoice, setCurrentInvoice] = useState<InvoiceInfo | null>(invoice || null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isLayoutVisible, setIsLayoutVisible] = useState(false);
+  const [savedPrinter, setSavedPrinter] = useState<PrinterDevice | null>(null);
+  const savedPrinterRef = useRef<PrinterDevice | null>(null);
 
   const isMountedRef = useRef(true);
   const isStartingRef = useRef(false);
@@ -51,6 +53,13 @@ export const useInvoicePrinter = (
   });
   const lastPrinterAddressRef = useRef<string | null>(null);
   const scanWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // AsyncStorage keys - platform specific for web compat
+  const PRINTER_STORAGE_KEY = Platform.select({
+    ios: 'lastPrinter_iOS',
+    android: 'lastPrinter_Android',
+    default: 'lastPrinter',
+  });
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -62,6 +71,43 @@ export const useInvoicePrinter = (
   useEffect(() => {
     if (invoice) setCurrentInvoice(invoice);
   }, [invoice]);
+
+  // Load saved printer on mount
+  useEffect(() => {
+    loadSavedPrinter();
+  }, []);
+
+  const savePrinter = async (printer: PrinterDevice) => {
+    try {
+      const jsonValue = JSON.stringify(printer);
+      await AsyncStorage.setItem(PRINTER_STORAGE_KEY, jsonValue);
+      setSavedPrinter(printer);
+      savedPrinterRef.current = printer;
+      console.log('[PRINTER] Saved:', printer.name);
+    } catch (e) {
+      console.error('[PRINTER] Save error:', e);
+    }
+  };
+
+  const loadSavedPrinter = async (): Promise<PrinterDevice | null> => {
+    try {
+      const jsonValue = await AsyncStorage.getItem(PRINTER_STORAGE_KEY);
+      if (jsonValue) {
+        const printer: PrinterDevice = JSON.parse(jsonValue);
+        if (printer.name && printer.address) {
+          setSavedPrinter(printer);
+          savedPrinterRef.current = printer;
+          console.log('[PRINTER] Loaded:', printer.name);
+          return printer;
+        }
+      }
+    } catch (e) {
+      console.error('[PRINTER] Load error:', e);
+    }
+    setSavedPrinter(null);
+    savedPrinterRef.current = null;
+    return null;
+  };
 
   const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> => {
     return Promise.race([
@@ -264,7 +310,9 @@ export const useInvoicePrinter = (
 
       if (isPrintedSuccessfully) {
         lastPrinterAddressRef.current = printer.address;
-        showMessage({ message: "Print success", type: "success" });
+        // Persist printer selection
+        await savePrinter(printer);
+        showMessage({ message: "In thành công! Đã lưu máy in.", type: "success" });
       }
     } catch (err: any) {
       const errorMsg = err?.message || "Unknown print error.";
@@ -299,6 +347,45 @@ export const useInvoicePrinter = (
     setCurrentInvoice(newInvoice);
   };
 
+  const tryAutoPrint = async (targetPrinter: PrinterDevice, targetInvoice: InvoiceInfo) => {
+    try {
+      showMessage({ 
+        message: `Đang in tự động: ${targetPrinter.name}`, 
+        type: "info" 
+      });
+
+      // Quick BT check
+      const btReady = await ensureBluetoothReady(true);
+      if (!btReady) {
+        throw new Error('BT not ready');
+      }
+
+      // Quick scan to validate printer still available
+      await BLEPrinter.init();
+      const devices: any = await withTimeout(BLEPrinter.getDeviceList(), SCAN_TIMEOUT * 0.8, "Quick scan timeout");
+      if (!devices?.length) {
+        throw new Error('No printers found');
+      }
+
+      const available = devices.map((d: any) => ({
+        name: d.device_name || d.name || "Unknown",
+        address: d.inner_mac_address || d.macAddress || d.address,
+      })).filter((d: PrinterDevice) => d.address) as PrinterDevice[];
+
+      const foundPrinter = available.find(p => p.address === targetPrinter.address);
+      if (!foundPrinter) {
+        throw new Error('Saved printer not available');
+      }
+
+      // Auto connect/print
+      await connectAndPrint(foundPrinter, targetInvoice);
+      return true;
+    } catch (err) {
+      console.log('[AUTO PRINT] Fallback to manual:', err);
+      return false;
+    }
+  };
+
   const handlePrintInvoice = async (invoiceToPrint?: InvoiceInfo | null) => {
     if (!isBlePrinterModuleAvailable()) {
       Alert.alert(
@@ -322,15 +409,36 @@ export const useInvoicePrinter = (
 
     try {
       setCurrentInvoice(targetInvoice);
-      setShowPrinterManager(true);
-      showMessage({ message: "Dang tim may in...", type: "info" });
 
+      // Try auto-print if saved printer exists (reload in case another hook just saved)
+      let printerToUse = savedPrinterRef.current || savedPrinter;
+      if (!printerToUse) {
+        printerToUse = await loadSavedPrinter();
+      }
+
+      if (printerToUse) {
+        const autoSuccess = await tryAutoPrint(printerToUse, targetInvoice);
+        if (autoSuccess) {
+          isStartingRef.current = false;
+          return; // Success - exit early
+        }
+        // Fallback: show message and continue to manual
+        showMessage({ 
+          message: "Không tìm máy in lưu, chọn thủ công...", 
+          type: "warning" 
+        });
+      } else {
+        showMessage({ message: "Lần đầu in, chọn máy in...", type: "info" });
+      }
+
+      // Manual flow
+      setShowPrinterManager(true);
       setTimeout(() => {
         if (isMountedRef.current) {
           startScan({ skipReadyCheck: false });
         }
       }, 120);
-    } catch {
+    } catch (err) {
       Alert.alert("Error", "Unexpected error while starting print flow.");
     } finally {
       isStartingRef.current = false;
@@ -343,21 +451,22 @@ export const useInvoicePrinter = (
     currentInvoice,
     isPrinting,
     isLayoutVisible,
-    printerModalProps: {
-      visible: showPrinterManager,
-      printers: availablePrinters,
-      isScanning,
-      isPrinting,
-      isLayoutVisible, // 🔧 NEW: Pass to Modal UI
-      currentInvoice,
-      onClose: () => {
-        if (!isPrinting) {
-          setShowPrinterManager(false);
-          isStartingRef.current = false;
-        }
+      printerModalProps: {
+        visible: showPrinterManager,
+        printers: availablePrinters,
+        isScanning,
+        isPrinting,
+        isLayoutVisible,
+        savedPrinter,  // Pass saved for UI hint
+        currentInvoice,
+        onClose: () => {
+          if (!isPrinting) {
+            setShowPrinterManager(false);
+            isStartingRef.current = false;
+          }
+        },
+        onScan: startScan,
+        onSelectPrinter: connectAndPrint,
       },
-      onScan: startScan,
-      onSelectPrinter: connectAndPrint,
-    },
   };
 };
