@@ -1,4 +1,4 @@
-// src/components/InvoiceLayouts.tsx
+﻿// src/components/InvoiceLayouts.tsx
 import { InvoiceInfo } from "@/types/invoice";
 import React, { ForwardedRef, JSX } from "react";
 import { View } from "react-native";
@@ -185,13 +185,13 @@ export const DynamicNotiInvoiceLayout = ({
     const BlockMap: Record<string, JSX.Element | null> = {
       // --- Nhóm 1: Đầu trang ---
       topDateTime: <BillTopDateTime label={block.label} />,
-      companyInfo: (
-        <BillCompanyInfo
-          name="ĐIỆN LỰC LẤP VÒ"
-          address="Địa chỉ: QL80, Bình Thạnh 1, TT.Lấp Vò, H.Lấp Vò, Đồng Tháp"
-          phoneservice="ĐT sửa chửa Dịch vụ về điện: 19001006 - 19009000"
-        />
-      ),
+      // companyInfo: (
+      //   <BillCompanyInfo
+      //     name="ĐIỆN LỰC LẤP VÒ"
+      //     address="Địa chỉ: QL80, Bình Thạnh 1, TT.Lấp Vò, H.Lấp Vò, Đồng Tháp"
+      //     phoneservice="ĐT sửa chửa Dịch vụ về điện: 19001006 - 19009000"
+      //   />
+      // ),
       header: <BillHeader label={block.label} customStyle={{ fontSize: 10 }} />,
 
       // --- Nhóm 2: Kỳ hóa đơn ---

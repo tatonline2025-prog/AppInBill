@@ -1,6 +1,6 @@
 // src/components/BillBlocks.tsx
-import { InvoiceInfo } from "@/types/invoice";
 import { useAuth } from "@/context/AuthContext";
+import { InvoiceInfo } from "@/types/invoice";
 import { day, month, numberToVietnameseWords } from "@/utils/printer"; // Import tá»« file utils má»›i
 import React from "react";
 import { View } from "react-native";
@@ -173,7 +173,7 @@ export const BillTotalAmountWords = ({ invoice, label }: { invoice: InvoiceInfo 
         <BillText>
           {" "}
           {"  "}
-          {numberToVietnameseWords(Number(combined)) || "KhĂ´ng"} Ä‘á»“ng
+{numberToVietnameseWords(Number(combined)) || "Không"} đồng
         </BillText>
       </BillText>
     </View>

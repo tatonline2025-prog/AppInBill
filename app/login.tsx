@@ -3,12 +3,13 @@ import { login } from "@/api/auth.api";
 import { Text, TextInput } from "@/components/StyledText";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
 
 // Sử dụng useAuth từ Context
 import { useAuth } from "@/context/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const REMEMBER_ME_KEY = "rememberMe";
 const SAVED_USERNAME_KEY = "savedUsername";
@@ -22,7 +23,8 @@ export default function Login() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const loadSavedCredentials = async () => {
@@ -162,24 +164,39 @@ export default function Login() {
           autoCapitalize="none"
         />
 
-        <TextInput
-          placeholder="Mật khẩu"
-          placeholderTextColor="#94a3b8"
-          style={{
-            width: "100%",
-            backgroundColor: "#fff",
-            borderWidth: 1,
-            borderColor: "#e2e8f0",
-            padding: 12,
-            borderRadius: 10,
-            marginBottom: 25,
-            fontSize: 16,
-            color: "#000",
-          }}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+        <View style={{ flexDirection: "row", alignItems: "center", width: "100%", marginBottom: 25, backgroundColor: "#fff", borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 10 }}>
+          <TextInput
+            placeholder="Mật khẩu"
+            placeholderTextColor="#94a3b8"
+            style={{
+              flex: 1,
+              padding: 12,
+              paddingRight: 12,
+              fontSize: 16,
+              color: "#000",
+            }}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+          />
+          <TouchableOpacity
+            onPress={() => setShowPassword(!showPassword)}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 12,
+              minHeight: 48,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={showPassword ? "eye-off" : "eye"} 
+              size={20} 
+              color="#64748b" 
+            />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           onPress={toggleRememberMe}

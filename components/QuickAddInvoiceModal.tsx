@@ -25,7 +25,7 @@ export default function QuickAddInvoiceModal({
   onClose,
   onSuccess,
 }: QuickAddInvoiceModalProps) {
-  const prefixOptions = ["PB070900", "PB07000", "PB050900"];
+  const prefixOptions = ["PB070900", "PB070700", "PB050900"];
   const [selectedPrefix, setSelectedPrefix] = useState(prefixOptions[0]);
   const [invoiceSuffix, setInvoiceSuffix] = useState("");
   const [customerName, setCustomerName] = useState("");
@@ -45,7 +45,6 @@ export default function QuickAddInvoiceModal({
   };
 
   const handleSubmit = async () => {
-    // Validate required fields
     const trimmedSuffix = invoiceSuffix.trim();
     if (!selectedPrefix) {
       showMessage({
@@ -55,16 +54,8 @@ export default function QuickAddInvoiceModal({
       return;
     }
 
-    const suffixRegex = /^\d{5}$/;
+    const suffixRegex = /^\\d{5}$/;
     const fullInvoiceNumber = `${selectedPrefix}${trimmedSuffix}`;
-
-    console.log("=== DEBUG Mã KH (prefix + 5 số cuối) ===");
-    console.log("Prefix:", selectedPrefix);
-    console.log("Suffix Raw:", JSON.stringify(invoiceSuffix));
-    console.log("Suffix Trimmed:", trimmedSuffix);
-    console.log("Suffix Length:", trimmedSuffix.length);
-    console.log("Suffix Valid:", suffixRegex.test(trimmedSuffix));
-    console.log("Full:", fullInvoiceNumber);
 
     if (!suffixRegex.test(trimmedSuffix)) {
       showMessage({
@@ -107,12 +98,6 @@ export default function QuickAddInvoiceModal({
       onSuccess?.();
       onClose();
     } catch (error: any) {
-      console.error("=== Lỗi thêm hóa đơn chi tiết ===");
-      console.error("Error:", error);
-      console.error("Response:", error?.response);
-      console.error("Data:", error?.response?.data);
-      console.error("Message:", error?.response?.data?.message);
-      
       const errorMsg = error?.response?.data?.message 
         || error?.message 
         || "Thêm hóa đơn thất bại. Vui lòng kiểm tra console để biết chi tiết.";
@@ -139,7 +124,6 @@ export default function QuickAddInvoiceModal({
         style={styles.overlay}
       >
         <View style={styles.container}>
-          {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Thêm nhanh hóa đơn</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
@@ -147,9 +131,7 @@ export default function QuickAddInvoiceModal({
             </TouchableOpacity>
           </View>
 
-          {/* Form */}
           <View style={styles.form}>
-            {/* Mã hóa đơn */
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
 Mã khách hàng (chọn prefix + 5 số cuối) <Text style={styles.required}>*</Text>
@@ -181,7 +163,6 @@ Mã khách hàng (chọn prefix + 5 số cuối) <Text style={styles.required}>*
               />
             </View>
 
-            /* Tên khách hàng */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
                 Tên khách hàng <Text style={styles.required}>*</Text>
@@ -195,7 +176,6 @@ Mã khách hàng (chọn prefix + 5 số cuối) <Text style={styles.required}>*
               />
             </View>
 
-            {/* Tổng tiền */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
                 Tổng số tiền chưa thu <Text style={styles.required}>*</Text>
@@ -211,7 +191,6 @@ Mã khách hàng (chọn prefix + 5 số cuối) <Text style={styles.required}>*
             </View>
           </View>
 
-          {/* Buttons */}
           <View style={styles.buttons}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}
@@ -304,6 +283,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 10,
+    marginBottom: 5,
   },
   prefixButtonSelected: {
     borderColor: "#2563eb",
