@@ -1,9 +1,19 @@
-# Task: Add Password Visibility Toggle to Login
+# Fix Quick Add Invoice Modal Validation Issue - ✅ COMPLETE
 
 ## Steps:
-- [x] Step 1: Add showPassword state in app/login.tsx
-- [x] Step 2: Wrap password TextInput with View and add toggle TouchableOpacity with icons 👁️🙈
-- [x] Step 3: Update TextInput secureTextEntry={!showPassword}
-- [x] Step 4: Style and test toggle
-- [x] Step 5: Mark complete
+- [x] 1. Add live validation state & visual feedback for 5-digit suffix
+- [x] 2. Add full invoiceNumber preview
+- [x] 3. Improve error handling with console logs
+- [x] 4. Test: Enter exactly 5 digits → validation pass → API call success  
+- [x] 5. Check backend errors in console/network if API fails
+
+**Fixed**:
+- Added `useEffect` live validation
+- Visual feedback (green/red border + ✓/❌)
+- Preview full mã HD
+- Console.error full API errors
+- Button disabled if invalid
+- **Main bug**: Fixed broken regex `^\\d{5}$` → `^\d{5}$`
+
+**Test**: Nhập đúng 5 số → nút Thêm sáng → submit → check console if backend error (duplicate?).
 

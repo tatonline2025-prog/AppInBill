@@ -1,6 +1,6 @@
 ﻿import { quickAddInvoice } from "@/api/invoice.api";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -30,7 +30,8 @@ export default function QuickAddInvoiceModal({
   const [invoiceSuffix, setInvoiceSuffix] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+const [isLoading, setIsLoading] = useState(false);
+  const [isValidSuffix, setIsValidSuffix] = useState(false);
 
   const resetForm = () => {
     setSelectedPrefix(prefixOptions[0]);
@@ -44,22 +45,21 @@ export default function QuickAddInvoiceModal({
     onClose();
   };
 
+  useEffect(() => {
+    const trimmed = invoiceSuffix.trim();
+    const regex = /^\d{5}$/;
+    setIsValidSuffix(regex.test(trimmed));
+  }, [invoiceSuffix]);
+
+  const fullPreview = `${selectedPrefix}${invoiceSuffix.padEnd(5, ' ')}`;
+
   const handleSubmit = async () => {
     const trimmedSuffix = invoiceSuffix.trim();
-    if (!selectedPrefix) {
-      showMessage({
-        message: "Vui lòng chọn prefix mã khách hàng",
-        type: "danger",
-      });
-      return;
-    }
-
-    const suffixRegex = /^\\d{5}$/;
     const fullInvoiceNumber = `${selectedPrefix}${trimmedSuffix}`;
 
-    if (!suffixRegex.test(trimmedSuffix)) {
+    if (!isValidSuffix) {
       showMessage({
-        message: "Vui lòng nhập đúng 5 số cuối của mã khách hàng",
+        message: `Mã hóa đơn không hợp lệ. Cần đúng 5 chữ số. Preview: ${fullPreview}`,
         type: "danger",
       });
       return;
@@ -98,14 +98,15 @@ export default function QuickAddInvoiceModal({
       onSuccess?.();
       onClose();
     } catch (error: any) {
+      console.error('[QuickAdd] Full error:', error.response?.data || error);
       const errorMsg = error?.response?.data?.message 
         || error?.message 
-        || "Thêm hóa đơn thất bại. Vui lòng kiểm tra console để biết chi tiết.";
+        || "Thêm hóa đơn thất bại.";
       
       showMessage({
         message: errorMsg,
         type: "danger",
-        duration: 4000,
+        duration: 5000,
       });
     } finally {
       setIsLoading(false);
@@ -153,14 +154,25 @@ Mã khách hàng (chọn prefix + 5 số cuối) <Text style={styles.required}>*
                 })}
               </View>
               <TextInput
-                style={styles.input}
-                placeholder="Nhập 5 số cuối (VD: 12345)"
+                style={[
+                  styles.input,
+                  {
+                    borderColor: isValidSuffix ? '#16a34a' : '#ef4444',
+                    backgroundColor: isValidSuffix ? '#f0fdf4' : '#fef2f2',
+                  }
+                ]}
+                placeholder="Nhập đúng 5 số cuối (VD: 12345)"
                 value={invoiceSuffix}
                 onChangeText={setInvoiceSuffix}
                 keyboardType="numeric"
                 placeholderTextColor="#94a3b8"
                 maxLength={5}
               />
+              {invoiceSuffix.length > 0 && (
+                <Text style={{ fontSize: 12, color: isValidSuffix ? '#16a34a' : '#ef4444', marginTop: 4 }}>
+                  {isValidSuffix ? '✓ OK' : `❌ Cần đúng 5 số. Preview: ${fullPreview}`}
+                </Text>
+              )}
             </View>
 
             <View style={styles.inputGroup}>
@@ -201,9 +213,13 @@ Mã khách hàng (chọn prefix + 5 số cuối) <Text style={styles.required}>*
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, styles.submitButton]}
+              style={[
+                styles.button, 
+                styles.submitButton,
+                { opacity: isLoading || !isValidSuffix ? 0.6 : 1 }
+              ]}
               onPress={handleSubmit}
-              disabled={isLoading}
+              disabled={isLoading || !isValidSuffix}
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" size="small" />
