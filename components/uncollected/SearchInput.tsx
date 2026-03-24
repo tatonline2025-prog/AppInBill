@@ -1,12 +1,19 @@
-// --- File: components/uncollected/SearchInput.tsx ---
 import { Text, TextInput } from "@/components/StyledText";
 import { InvoiceInfo } from "@/types/invoice";
 import React from "react";
-import { Pressable, ScrollView, TouchableOpacity, View } from "react-native";
+import { ScrollView, TouchableOpacity, View } from "react-native";
+
+
 
 /* ==========================================================
  COMPONENT CON: Ô NHẬP & GỢI Ý
  ========================================================== */
+const getInvoiceColor = (item: InvoiceInfo) => {
+  if (item.isPaid) return "#9ca3af"; // xám nhạt đã đóng cước
+  if (item.collectionStatus === "collected") return "#16a34a"; // xanh lá đã thu
+  return "#000000"; // đen chưa thu
+};
+
 export default function SearchInput({
   customerCode,
   onChange,
@@ -32,52 +39,6 @@ export default function SearchInput({
 }) {
   return (
     <View style={{ width: "100%", marginBottom: 10 }}>
-      <View
-        style={{
-          flexDirection: "row",
-          backgroundColor: "#f1f5f9",
-          borderRadius: 10,
-          marginBottom: 10,
-          padding: 4,
-        }}
-      >
-        {[
-          { label: "Mã KH", value: "customer" },
-          { label: "Mã Trạm", value: "station" },
-          { label: "Tên KH", value: "customerName" },
-        ].map((option) => {
-          const isActive = searchType === option.value;
-          return (
-            <TouchableOpacity
-              key={option.value}
-              activeOpacity={0.8}
-              onPress={() => onChangeSearchType(option.value)}
-              style={{
-                flex: 1,
-                backgroundColor: isActive ? "#2563eb" : "transparent",
-                paddingVertical: 10,
-                borderRadius: 8,
-                alignItems: "center",
-                justifyContent: "center",
-                shadowColor: isActive ? "#2563eb" : "transparent",
-                shadowOpacity: 0.2,
-                shadowRadius: 4,
-                elevation: isActive ? 2 : 0,
-              }}
-            >
-              <Text
-                style={{
-                  color: isActive ? "#fff" : "#334155",
-                  fontSize: 15,
-                  fontWeight: "600",
-                }}
-              >
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
       <View
         style={{
           flexDirection: "row",
@@ -138,6 +99,53 @@ export default function SearchInput({
           <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>Tìm kiếm</Text>
         </TouchableOpacity>
       </View>
+      <View
+        style={{
+          flexDirection: "row",
+          backgroundColor: "#f1f5f9",
+          borderRadius: 10,
+          marginBottom: 10,
+          padding: 4,
+          marginTop: 10,
+        }}
+      >
+        {[
+          { label: "Mã KH", value: "customer" },
+          { label: "Mã Trạm", value: "station" },
+          { label: "Tên KH", value: "customerName" },
+        ].map((option) => {
+          const isActive = searchType === option.value;
+          return (
+            <TouchableOpacity
+              key={option.value}
+              activeOpacity={0.8}
+              onPress={() => onChangeSearchType(option.value)}
+              style={{
+                flex: 1,
+                backgroundColor: isActive ? "#2563eb" : "transparent",
+                paddingVertical: 10,
+                borderRadius: 8,
+                alignItems: "center",
+                justifyContent: "center",
+                shadowColor: isActive ? "#2563eb" : "transparent",
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+                elevation: isActive ? 2 : 0,
+              }}
+            >
+              <Text
+                style={{
+                  color: isActive ? "#fff" : "#334155",
+                  fontSize: 15,
+                  fontWeight: "600",
+                }}
+              >
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
       {suggestions.length > 0 && (
         <View
           style={{
@@ -157,43 +165,60 @@ export default function SearchInput({
             nestedScrollEnabled={true}
             keyboardShouldPersistTaps="handled"
           >
-            {suggestions.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => {
-                  if (searchType === "customer") {
-                    onSelect(item.invoiceNumber);
-                  } else if (searchType === "station") {
-                    onSelect(item.recordBookCode!);
-                  } else if (searchType === "customerName") {
-                    onSelect(item.customerName);
-                  }
-                }}
-                style={{
-                  paddingVertical: 12,
-                  paddingHorizontal: 16,
-                  borderBottomWidth: index !== suggestions.length - 1 ? 1 : 0,
-                  borderColor: "#f1f5f9",
-                }}
-              >
-                {searchType === "station" ? (
-                  <Text style={{ fontWeight: "700", color: "#6366f1", fontSize: 16 }}>{item.recordBookCode}</Text>
-                ) : (
-                  <>
-                    <Text style={{ fontWeight: "600", color: "#6366f1", fontSize: 14 }}>
-                      Mã Trạm: {item.recordBookCode}
-                    </Text>
-                    <Text style={{ fontWeight: "600", color: "#2563eb", fontSize: 15 }}>{item.invoiceNumber}</Text>
-                    <Text style={{ color: "#475569", fontSize: 14 }}>{item.customerName}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            ))}
+            {suggestions.map((item, index) => {
+              const color = getInvoiceColor(item);
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={{
+                    position: 'relative',
+                    paddingVertical: 12,
+                    paddingLeft: 22,
+                    paddingRight: 16,
+                    borderBottomWidth: index !== suggestions.length - 1 ? 1 : 0,
+                    borderColor: "#f1f5f9",
+                  }}
+                  onPress={() => {
+                    if (searchType === "customer") {
+                      onSelect(item.invoiceNumber);
+                    } else if (searchType === "station") {
+                      onSelect(item.recordBookCode!);
+                    } else if (searchType === "customerName") {
+                      onSelect(item.customerName);
+                    }
+                  }}
+                >
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 6,
+                      backgroundColor: color,
+                      borderTopRightRadius: 3,
+                      borderBottomRightRadius: 3,
+                    }}
+                  />
+                  {searchType === "station" ? (
+                    <Text style={{ fontWeight: "700", color, fontSize: 16 }}>{item.recordBookCode}</Text>
+                  ) : (
+                    <>
+                      <Text style={{ fontWeight: "600", color, fontSize: 14 }}>
+                        Mã Trạm: {item.recordBookCode}
+                      </Text>
+                      <Text style={{ fontWeight: "600", color: "#2563eb", fontSize: 15 }}>{item.invoiceNumber}</Text>
+                      <Text style={{ color: "#475569", fontSize: 14 }}>{item.customerName}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
       )}
 
-      {/* Checkbox lọc hóa đơn đã đóng cước - Bấm là hiển thị ngay */}
+      {/* Checkbox lọc hóa đơn đã đóng cước - Bấm là hiển thị ngay
       <Pressable
         onPress={() => {
           onTogglePaidFilter?.(!showPaidFilter);
@@ -231,7 +256,8 @@ export default function SearchInput({
         <Text style={{ color: showPaidFilter ? "#2563eb" : "#475569", fontWeight: "600" }}>
           {"Xem hóa đơn đã đóng cước (tất cả)"}
         </Text>
-      </Pressable>
+      </Pressable> */}
     </View>
   );
 }
+

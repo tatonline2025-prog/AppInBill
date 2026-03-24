@@ -1,4 +1,4 @@
-import { Text } from "@/components/StyledText";
+﻿import { Text } from "@/components/StyledText";
 import { InvoiceInfo } from "@/types/invoice";
 import { Ionicons } from "@expo/vector-icons";
 import React, { memo, useCallback, useState } from "react";
@@ -28,7 +28,7 @@ const shortenInvoiceNumber = (invoiceNumber: string) => {
   if (!invoiceNumber) return "";
   // Tìm và thay thế phần "0900" ở giữa
   // Ví dụ: PB0709001234 -> PB071234
-  return invoiceNumber.replace(/0900/, "");
+  return invoiceNumber.replace(/0900/, "...");
 };
 
 // --- 1. TÁCH COMPONENT CON & SỬ DỤNG MEMO ---
@@ -83,28 +83,27 @@ const InvoiceItem = memo(
           activeOpacity={0.7}
           onPress={() => onToggle(item)}
         >
-          {/* Layout: 60% Trái = Thông tin, 40% Phải = Buttons */}
+          {/* Layout: 70% Trái = Thông tin, 30% Phải = Buttons */}
           <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-            {/* Bên Trái (60%): Thông tin - Giảm diện tích */}
-            <View style={{ flex: 2.5, marginRight: 8 }}>
-              <Text style={{ fontWeight: "600", color: "#2563eb" }}>
+            {/* Bên Trái (70%) */}
+            <View style={{ flex: 3.3, marginRight: 8 }}>
+              <Text style={{ fontWeight: "600", color: item.collectionStatus === "collected" ? "#16a34a" : (item.isPaid ? "#6b7280" : "#000000") }}>
                 {displayInvoiceNumber} - {Number(item.totalAmount).toLocaleString("vi-VN")}
               </Text>
               <Text style={{ color: "#475569" }} numberOfLines={1} ellipsizeMode="tail">
-                {item.customerName}
+                Trạm: {item.recordBookCode || 'N/A'} - {item.customerName}
               </Text>
               {item.isPaid && (
-                <Text style={{ color: "#16a34a", fontWeight: "600", fontSize: 12, marginTop: 2 }}>
+                <Text style={{ color: "#6b7280", fontWeight: "600", fontSize: 12, marginTop: 2 }}>
                   ✓ Đã đóng cước
                 </Text>
               )}
             </View>
 
-            {/* Bên Phải (40%): Buttons + Chi tiết */}
-            <View style={{ flex: 1.5 }}>
-              {/* 4 Button icons trên 1 hàng ngang - Giảm gap/padding */}
-              <View style={{ flexDirection: "row", gap: 2, marginBottom: 6 }}>
-                {/* Button In thông báo nhanh (mới) - cam */}
+            {/* Bên Phải (30%): Buttons 2 dòng */}
+            <View style={{ flex: 1 }}>
+              {/* Dòng 1: In thông báo & In biên nhận */}
+              <View style={{ flexDirection: "row", gap: 2, marginBottom: 4 }}>
                 <TouchableOpacity
                   onPress={handlePrintNotice}
                   style={{
@@ -120,7 +119,6 @@ const InvoiceItem = memo(
                   <Ionicons name="document-text-outline" size={14} color="#fff" />
                 </TouchableOpacity>
 
-                {/* Button In biên nhận - máy in */}
                 <TouchableOpacity
                   onPress={handlePrintInvoice}
                   style={{
@@ -135,31 +133,37 @@ const InvoiceItem = memo(
                 >
                   <Ionicons name="print" size={14} color="#fff" />
                 </TouchableOpacity>
+              </View>
 
-                {/* Button Đã thu - V (conditional) */}
-                {item.collectionStatus !== "collected" && item.totalAmount && item.totalAmount !== 0 && (
-                  <TouchableOpacity
-                    onPress={handleMarkCollected}
-                    style={{
-                      flex: 1,
-                      backgroundColor: "#16a34a",
-                      paddingVertical: 6,
-                      borderRadius: 4,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minHeight: 26,
-                    }}
-                  >
-                    <Ionicons name="checkmark" size={14} color="#fff" />
-                  </TouchableOpacity>
-                )}
+              {/* Dòng 2: Đã thu & Đóng cước */}
+              <View style={{ flexDirection: "row", gap: 2 }}>
+                <TouchableOpacity
+                  onPress={handleMarkCollected}
+                  disabled={item.collectionStatus === "collected"}
+                  style={{
+                    flex: 1,
+                    backgroundColor: item.collectionStatus === "collected" ? "#9ca3af" : "#16a34a",
+                    paddingVertical: 6,
+                    borderRadius: 4,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 26,
+                    opacity: item.collectionStatus === "collected" ? 0.6 : 1,
+                  }}
+                >
+                  <Ionicons 
+                    name={item.collectionStatus === "collected" ? "checkmark-done-circle" : "checkmark"} 
+                    size={14} 
+                    color="#fff" 
+                  />
+                </TouchableOpacity>
 
-                {/* Button Đóng cước/X - tùy trạng thái */}
+
                 <TouchableOpacity
                   onPress={handleIsPaid}
                   style={{
                     flex: 1,
-                    backgroundColor: item.isPaid ? "#f59e0b" : "#7c3aed",
+                    backgroundColor: item.isPaid ? "#6b7280" : "#7c3aed",
                     paddingVertical: 6,
                     borderRadius: 4,
                     alignItems: "center",
@@ -331,3 +335,4 @@ export default function InvoiceList({
     </View>
   );
 }
+

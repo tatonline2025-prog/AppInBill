@@ -3,6 +3,7 @@ import FullScreenLoader from "@/components/FullScreenLoader";
 import { Text } from "@/components/StyledText";
 import { useAuth } from "@/context/AuthContext";
 import { InvoiceInfo } from "@/types/invoice";
+import { toVietnamDateKey } from "@/utils/vnTimezone";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Stack } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -43,9 +44,7 @@ export default function InvoicesScreen() {
     if (date) setSelectedDate(date);
   };
 
-  const formattedDate = selectedDate
-    ? selectedDate.toISOString().split("T")[0] // YYYY-MM-DD
-    : undefined;
+  const formattedDate = selectedDate ? toVietnamDateKey(selectedDate) : undefined;
 
   // Hàm refresh
   const handleRefresh = async () => {

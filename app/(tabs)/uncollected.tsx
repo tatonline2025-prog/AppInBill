@@ -14,13 +14,13 @@ import InvoiceResults from "@/components/uncollected/InvoiceResults";
 import SearchInput from "@/components/uncollected/SearchInput";
 
 // --- Import Hooks ---
-import InvoiceList from "@/components/uncollected/InvoiceList";
 import TopStationsList, { StationSummary } from "@/components/uncollected/TopStationsList";
 import { useAuth } from "@/context/AuthContext";
 import { useInvoiceLayout } from "@/hooks/uncollected/useInvoiceLayout";
 import { useUncollectedSearch } from "@/hooks/uncollected/useUncollectedSearch";
 import { useInvoicePrinter } from "@/hooks/useInvoicePrinter";
 import { InvoiceInfo } from "@/types/invoice";
+import { toVietnamISOString } from "@/utils/vnTimezone";
 
 /* ============================================
    MÀN HÌNH: DANH SÁCH HÓA ĐƠN CHƯA THU
@@ -175,7 +175,7 @@ export default function Uncollected() {
             const updatedInvoice = response?.data?.invoice || {
               ...targetInvoice,
               collectionStatus: "collected" as const,
-              collectionDate: new Date().toISOString(),
+              collectionDate: toVietnamISOString(),
               assignedTo: {
                 _id: user?._id || currentAssigned?._id,
                 fullName: user?.fullName || currentAssigned?.fullName,
@@ -382,13 +382,13 @@ export default function Uncollected() {
             }}
           />
 
-          <InvoiceList
+          {/* <InvoiceList
             title={"20 hoá đơn chưa thu nhiều tiền nhất"}
             invoices={uncolInvoice}
             onSelectInvoice={setInvoice}
             actions={invoiceActions}
             onUpdateInfo={handleUpdateInfo}
-          />
+          />  */}
         </>
       )}
       {/* 3. Modal in (ẩn) */}

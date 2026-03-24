@@ -26,16 +26,16 @@ export default function QuickAddInvoiceModal({
   onSuccess,
 }: QuickAddInvoiceModalProps) {
   const prefixOptions = ["PB070900", "PB070700", "PB050900"];
-  const [selectedPrefix, setSelectedPrefix] = useState(prefixOptions[0]);
-  const [invoiceSuffix, setInvoiceSuffix] = useState("");
+const [selectedPrefix, setSelectedPrefix] = useState<string | null>(null);
+const [invoiceNumber, setInvoiceNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
 const [isLoading, setIsLoading] = useState(false);
-  const [isValidSuffix, setIsValidSuffix] = useState(false);
+const [isValidInvoice, setIsValidInvoice] = useState(false);
 
   const resetForm = () => {
-    setSelectedPrefix(prefixOptions[0]);
-    setInvoiceSuffix("");
+    setSelectedPrefix(null);
+    setInvoiceNumber("");
     setCustomerName("");
     setTotalAmount("");
   };
@@ -46,20 +46,26 @@ const [isLoading, setIsLoading] = useState(false);
   };
 
   useEffect(() => {
-    const trimmed = invoiceSuffix.trim();
-    const regex = /^\d{5}$/;
-    setIsValidSuffix(regex.test(trimmed));
-  }, [invoiceSuffix]);
+    const trimmed = invoiceNumber.trim();
+    if (!trimmed) {
+      setIsValidInvoice(false);
+      return;
+    }
+    const len = trimmed.length;
+if (selectedPrefix) {
+      setIsValidInvoice(trimmed.startsWith(selectedPrefix) && trimmed.length === selectedPrefix.length + 5);
+    } else {
+      setIsValidInvoice(len >= 10 && len <= 13 && /^\d+$/.test(trimmed));
+    }
+  }, [invoiceNumber, selectedPrefix]);
 
-  const fullPreview = `${selectedPrefix}${invoiceSuffix.padEnd(5, ' ')}`;
+  const fullPreview = invoiceNumber.padEnd(13, ' ');
 
   const handleSubmit = async () => {
-    const trimmedSuffix = invoiceSuffix.trim();
-    const fullInvoiceNumber = `${selectedPrefix}${trimmedSuffix}`;
-
-    if (!isValidSuffix) {
+    const trimmedNumber = invoiceNumber.trim();
+    if (!isValidInvoice) {
       showMessage({
-        message: `Mã hóa đơn không hợp lệ. Cần đúng 5 chữ số. Preview: ${fullPreview}`,
+        message: `Mã hóa đơn không hợp lệ. ${selectedPrefix ? `Phải bắt đầu bằng ${selectedPrefix} + 5 số.` : 'Tự nhập 10-13 số.'} Preview: ${fullPreview}`,
         type: "danger",
       });
       return;
@@ -73,7 +79,7 @@ const [isLoading, setIsLoading] = useState(false);
       return;
     }
 
-    if (!totalAmount.trim() || isNaN(Number(totalAmount)) || Number(totalAmount) <= 0) {
+    if (!totalAmount.trim() || isNaN(Number(totalAmount)) || Number(totalAmount) < 0) {
       showMessage({
         message: "Vui lòng nhập tổng tiền hợp lệ",
         type: "danger",
@@ -84,7 +90,7 @@ const [isLoading, setIsLoading] = useState(false);
     try {
       setIsLoading(true);
       await quickAddInvoice({
-        invoiceNumber: fullInvoiceNumber,
+        invoiceNumber: trimmedNumber,
         customerName: customerName.trim(),
         totalAmount: Number(totalAmount),
       });
@@ -135,7 +141,7 @@ const [isLoading, setIsLoading] = useState(false);
           <View style={styles.form}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-Mã khách hàng (chọn prefix + 5 số cuối) <Text style={styles.required}>*</Text>
+Mã KH (chọn prefix tự điền 5 số cuối, hoặc tự gõ 10-13 số) <Text style={styles.required}>*</Text>
               </Text>
               <View style={styles.prefixRow}>
                 {prefixOptions.map((prefix) => {
@@ -144,7 +150,15 @@ Mã khách hàng (chọn prefix + 5 số cuối) <Text style={styles.required}>*
                     <TouchableOpacity
                       key={prefix}
                       style={[styles.prefixButton, isSelected && styles.prefixButtonSelected]}
-                      onPress={() => setSelectedPrefix(prefix)}
+                      onPress={() => {
+                        if (isSelected) {
+                          setSelectedPrefix(null);
+                          setInvoiceNumber("");
+                        } else {
+                          setSelectedPrefix(prefix);
+                          setInvoiceNumber(prefix);
+                        }
+                      }}
                     >
                       <Text style={[styles.prefixButtonText, isSelected && styles.prefixButtonTextSelected]}>
                         {prefix}
@@ -157,20 +171,25 @@ Mã khách hàng (chọn prefix + 5 số cuối) <Text style={styles.required}>*
                 style={[
                   styles.input,
                   {
-                    borderColor: isValidSuffix ? '#16a34a' : '#ef4444',
-                    backgroundColor: isValidSuffix ? '#f0fdf4' : '#fef2f2',
+                    borderColor: isValidInvoice ? '#16a34a' : '#ef4444',
+                    backgroundColor: isValidInvoice ? '#f0fdf4' : '#fef2f2',
                   }
                 ]}
-                placeholder="Nhập đúng 5 số cuối (VD: 12345)"
-                value={invoiceSuffix}
-                onChangeText={setInvoiceSuffix}
+                placeholder={selectedPrefix ? "Nhập 5 số tiếp theo" : "Tự nhập 10-13 số"}
+                value={invoiceNumber}
+                onChangeText={setInvoiceNumber}
                 keyboardType="numeric"
                 placeholderTextColor="#94a3b8"
-                maxLength={5}
+                maxLength={13}
               />
-              {invoiceSuffix.length > 0 && (
-                <Text style={{ fontSize: 12, color: isValidSuffix ? '#16a34a' : '#ef4444', marginTop: 4 }}>
-                  {isValidSuffix ? '✓ OK' : `❌ Cần đúng 5 số. Preview: ${fullPreview}`}
+              {invoiceNumber.length > 0 && (
+                <Text style={{ fontSize: 12, color: isValidInvoice ? '#16a34a' : '#ef4444', marginTop: 4 }}>
+                  {isValidInvoice ? '✓ OK' : `❌ ${selectedPrefix ? `Bắt đầu ${selectedPrefix}` : '10-13 số'}. Preview: ${fullPreview}`}
+                </Text>
+              )}
+              {selectedPrefix && (
+                <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                  Đã chọn prefix: {selectedPrefix}
                 </Text>
               )}
             </View>
@@ -216,10 +235,10 @@ Mã khách hàng (chọn prefix + 5 số cuối) <Text style={styles.required}>*
               style={[
                 styles.button, 
                 styles.submitButton,
-                { opacity: isLoading || !isValidSuffix ? 0.6 : 1 }
+{ opacity: isLoading || !isValidInvoice ? 0.6 : 1 }
               ]}
               onPress={handleSubmit}
-              disabled={isLoading || !isValidSuffix}
+disabled={isLoading || !isValidInvoice}
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" size="small" />

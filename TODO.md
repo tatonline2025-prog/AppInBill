@@ -1,19 +1,23 @@
-# Fix Quick Add Invoice Modal Validation Issue - ✅ COMPLETE
+# TODO: Update Paid Invoices Tab UI for Customer Info Display
 
-## Steps:
-- [x] 1. Add live validation state & visual feedback for 5-digit suffix
-- [x] 2. Add full invoiceNumber preview
-- [x] 3. Improve error handling with console logs
-- [x] 4. Test: Enter exactly 5 digits → validation pass → API call success  
-- [x] 5. Check backend errors in console/network if API fails
+## Plan Breakdown & Progress
 
-**Fixed**:
-- Added `useEffect` live validation
-- Visual feedback (green/red border + ✓/❌)
-- Preview full mã HD
-- Console.error full API errors
-- Button disabled if invalid
-- **Main bug**: Fixed broken regex `^\\d{5}$` → `^\d{5}$`
+### 1. ✅ Create utils/shortenCustomerCode.ts
+- [x] Create reusable shortenCustomerCode function: replace `/0900\d*/` with `...`
 
-**Test**: Nhập đúng 5 số → nút Thêm sáng → submit → check console if backend error (duplicate?).
+### 2. ✅ Update app/(tabs)/collected.tsx (fixed shorten logic)
+- [x] Import shortenCustomerCode util
+- [x] In InvoiceItem title: Use `shortenCustomerCode(item.invoiceNumber || item.customerPhone || '')` for mã KH (exact /0900/ → "...")
+- [x] Add `numberOfLines={1} ellipsizeMode="tail"` to customerName Text
+- [x] Test display: shortened code (PB0709001234 → PB07...1234), truncated name if long
 
+### 3. 🔄 Optional: Update uncollected/InvoiceList.tsx
+- [ ] Replace old shortenInvoiceNumber with new util for consistency
+
+### 4. 🧪 Testing
+- [ ] Run app → Navigate to "hóa đơn đã thanh toán" tab
+- [ ] Verify: mã KH shortened (hide 0900), tên KH 1 line with "...' if long
+- [ ] Test long names and various code formats
+
+### 5. ✅ Complete Task
+- [ ] Use attempt_completion

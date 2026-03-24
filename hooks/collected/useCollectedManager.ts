@@ -2,20 +2,17 @@
 import { searchInvoice_API, searchInvoiceByDate_API } from "@/api/invoice.api";
 import { InvoiceInfo } from "@/types/invoice";
 import { IUser } from "@/types/user";
+import { toVietnamDateKey } from "@/utils/vnTimezone";
 import { useEffect, useRef, useState } from "react";
 import { showMessage } from "react-native-flash-message";
 
 type SearchType = "customer" | "station" | "customerName";
 
-const isSameLocalDate = (dateValue: string | Date | undefined, targetDate: Date) => {
+const isSameVietnamDate = (dateValue: string | Date | undefined, targetDate: Date) => {
   if (!dateValue) return false;
   const d = new Date(dateValue);
   if (Number.isNaN(d.getTime())) return false;
-  return (
-    d.getFullYear() === targetDate.getFullYear() &&
-    d.getMonth() === targetDate.getMonth() &&
-    d.getDate() === targetDate.getDate()
-  );
+  return toVietnamDateKey(d) === toVietnamDateKey(targetDate);
 };
 
 const sumTotalAmount = (items: InvoiceInfo[]) =>
@@ -166,7 +163,7 @@ export const useCollectedManager = (user: IUser | null) => {
       const serverData = parsed.data;
       const filteredData =
         searchType === "station" && activeDate
-          ? serverData.filter((item: InvoiceInfo) => isSameLocalDate(item.collectionDate as any, activeDate))
+          ? serverData.filter((item: InvoiceInfo) => isSameVietnamDate(item.collectionDate as any, activeDate))
           : serverData;
 
       const totalPagesServer = parsed.totalPages;
@@ -185,7 +182,7 @@ export const useCollectedManager = (user: IUser | null) => {
             const stationCode = code.trim().toUpperCase();
             if (activeDate) {
               showMessage({
-                message: `Không có hóa đơn đã thu tại mã trạm ${stationCode} trong ngày ${activeDate.toLocaleDateString("vi-VN")}.`,
+                message: `Không có hóa đơn đã thu tại mã trạm ${stationCode} trong ngày ${new Intl.DateTimeFormat('vi-VN', {timeZone: 'Asia/Ho_Chi_Minh'}).format(activeDate)}.`,
                 type: "danger",
               });
             } else {
@@ -199,7 +196,7 @@ export const useCollectedManager = (user: IUser | null) => {
           }
         } else {
           if (searchType === "station") {
-            const suffix = activeDate ? ` (lọc ngày ${activeDate.toLocaleDateString("vi-VN")})` : "";
+            const suffix = activeDate ? ` (lọc ngày ${new Intl.DateTimeFormat('vi-VN', {timeZone: 'Asia/Ho_Chi_Minh'}).format(activeDate)})` : "";
             showMessage({
               message: `Tìm thấy ${totalInvoicesValue} hóa đơn đã thu tại mã trạm.${suffix}`,
               type: "success",
@@ -258,7 +255,7 @@ export const useCollectedManager = (user: IUser | null) => {
     setSelectedDate(date);
 
     try {
-      const dateString = date.toLocaleDateString("en-CA"); // YYYY-MM-DD
+      const dateString = new Intl.DateTimeFormat('en-CA', {timeZone: 'Asia/Ho_Chi_Minh'}).format(date); // YYYY-MM-DD
 
       // Gọi API với page và limit
       const res = await searchInvoiceByDate_API(user._id, user.province, dateString, pageToFetch, 50);

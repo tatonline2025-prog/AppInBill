@@ -12,7 +12,7 @@ export const viewShotWidthInDp = PRINTER_PIXEL_WIDTH / screenDensity;
 //   return normalizedSize;
 // };
 
-export const now = new Date();
+export const now = new Date(new Date().toLocaleString("en-US", {timeZone: 'Asia/Ho_Chi_Minh'}));
 export const day = String(now.getDate()).padStart(2, "0");
 export const month = String(now.getMonth() + 1).padStart(2, "0");
 

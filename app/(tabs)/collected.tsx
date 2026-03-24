@@ -13,6 +13,7 @@ import { handleToggle_API } from "@/api/invoice.api";
 import { getInvoiceLayout } from "@/api/invoicelayout.api";
 import { useAuth } from "@/context/AuthContext";
 import { useInvoicePrinter } from "@/hooks/useInvoicePrinter";
+import { shortenCustomerCode } from "@/utils/shortenCustomerCode";
 
 // Components
 import InvoiceDetail from "@/components/InvoiceDetail";
@@ -42,11 +43,11 @@ const InvoiceItem = React.memo(
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: "600", color: "#2563eb" }}>
-                {item.invoiceNumber} - {item.customerName}
+                {shortenCustomerCode(item.invoiceNumber || item.customerPhone || '')} - {item.customerName}
               </Text>
               <Text style={{ color: "#475569" }}>Tiền: {Number(item.totalAmount).toLocaleString("vi-VN")} đ</Text>
               <Text style={{ color: "#64748b", fontSize: 12 }}>
-                Ngày thu: {item.collectionDate ? new Date(item.collectionDate).toLocaleDateString("vi-VN") : "-"}
+Ngày thu: {item.collectionDate ? new Intl.DateTimeFormat('vi-VN', {timeZone: 'Asia/Ho_Chi_Minh'}).format(new Date(item.collectionDate)) : "-"}
               </Text>
             </View>
             <Text style={{ fontSize: 12, color: "#94a3b8" }}>{isExpanded ? "▲ Thu gọn" : "▼ Chi tiết"}</Text>

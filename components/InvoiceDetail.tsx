@@ -237,12 +237,12 @@ export default function InvoiceDetail({
         <InfoRow
           label="Trạng thái thu"
           value={invoice.collectionStatus === "collected" ? "Đã thu" : "Chưa thu"}
-          color={invoice.collectionStatus === "collected" ? "#16a34a" : "#dc2626"}
+          color={invoice.collectionStatus === "collected" ? "#16a34a" : "#000000"}
         />
         <InfoRow
           label="Trạng thái đóng cước"
           value={invoice.isPaid ? "Đã đóng cước" : "Chưa đóng cước"}
-          color={invoice.isPaid ? "#16a34a" : "#dc2626"}
+          color={invoice.isPaid ? "#9ca3af" : "#000000"}
         />
         <InfoRow
           label="Trạng thái in"
@@ -256,7 +256,7 @@ export default function InvoiceDetail({
         />
         <InfoRow
           label="Ngày thu"
-          value={invoice.collectionDate ? new Date(invoice.collectionDate).toLocaleDateString("vi-VN") : "---"}
+value={invoice.collectionDate ? new Intl.DateTimeFormat('vi-VN', {timeZone: 'Asia/Ho_Chi_Minh'}).format(new Date(invoice.collectionDate)) : "---"}
         />
         <InfoRow label="Người phụ trách" value={invoice.assignedTo?.fullName || "---"} />
       </View>

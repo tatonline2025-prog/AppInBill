@@ -199,7 +199,7 @@ export default function InvoiceDetail({
         >
           Thông tin hóa đơn
         </Text>
-        <InfoRow label="Mã KH" value={invoice.invoiceNumber} />
+        <InfoRow label="Mã KH" value={invoice.invoiceNumber} color={invoice.isPaid ? "#6b7280" : "#334155"} />
         <InfoRow
           label="Tên"
           value={invoice.customerName}
@@ -237,17 +237,17 @@ export default function InvoiceDetail({
           label="Tổng tiền"
           value={Number(invoice.totalAmount).toLocaleString("vi-VN") + " VND"}
           labelStyle={{ fontWeight: "700", fontSize: 15, color: "#334155" }}
-          valueStyle={{ fontWeight: "700", fontSize: 15, color: "#334155" }}
+          valueStyle={{ fontWeight: "700", fontSize: 15, color: invoice.isPaid ? "#6b7280" : "#334155" }}
         />
         <InfoRow
           label="Trạng thái thu"
           value={invoice.collectionStatus === "collected" ? "Đã thu" : "Chưa thu"}
-          color={invoice.collectionStatus === "collected" ? "#16a34a" : "#dc2626"}
+          color={invoice.collectionStatus === "collected" ? "#16a34a" : "#000000"}
         />
         <InfoRow
           label="Trạng thái đóng cước"
           value={invoice.isPaid ? "Đã đóng cước" : "Chưa đóng cước"}
-          color={invoice.isPaid ? "#16a34a" : "#dc2626"}
+          color={invoice.isPaid ? "#6b7280" : "#000000"}
         />
         <InfoRow
           label="Trạng thái in"
@@ -262,7 +262,7 @@ export default function InvoiceDetail({
         {/* <InfoRow label="Ngày giao" value={new Date(invoice.issueDate).toLocaleDateString("vi-VN")} /> */}
         <InfoRow
           label="Ngày thu"
-          value={invoice.collectionDate ? new Date(invoice.collectionDate).toLocaleDateString("vi-VN") : "---"}
+value={invoice.collectionDate ? new Intl.DateTimeFormat('vi-VN', {timeZone: 'Asia/Ho_Chi_Minh'}).format(new Date(invoice.collectionDate)) : "---"}
         />
         <InfoRow label="Người phụ trách" value={invoice.assignedTo?.fullName || "---"} />
       </View>

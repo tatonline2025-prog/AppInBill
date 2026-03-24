@@ -45,14 +45,13 @@ export default function TopStationsList({ title, stations, onSelectStation }: To
                 <Text style={{ fontWeight: "700", color: "#1e293b", fontSize: 15 }}>
                   {item.stationName || "Không xác định"}
                 </Text>
+                <Text style={{ color: "#0d9488", fontWeight: "600", marginTop: 4, fontSize: 15 }}>
+                {item.totalAmount.toLocaleString("vi-VN")} VND
+                </Text>
                 <View style={{ backgroundColor: "#dbeafe", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
                   <Text style={{ fontSize: 11, color: "#1e40af", fontWeight: "600" }}>{item.count} hoá đơn</Text>
                 </View>
               </View>
-
-              <Text style={{ color: "#0d9488", fontWeight: "600", marginTop: 4, fontSize: 15 }}>
-                Tổng tiền: {item.totalAmount.toLocaleString("vi-VN")} VND
-              </Text>
             </View>
           </TouchableOpacity>
         ))

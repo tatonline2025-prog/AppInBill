@@ -5,6 +5,7 @@ import { day, month, numberToVietnameseWords } from "@/utils/printer"; // Import
 import React from "react";
 import { View } from "react-native";
 import { BillText } from "./BillText"; // Import tá»« BillText má»›i
+import { VN_TIMEZONE } from "@/utils/vnTimezone";
 
 const isMissing = (value: any) => {
   if (value === null || value === undefined) return true;
@@ -199,7 +200,11 @@ export const BillTimestamp = ({ label }: { label: string }) => (
   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 1, alignItems: "flex-start" }}>
     <BillText>{label}:</BillText>
     <BillText style={{ fontFamily: "NotoSans-Regular", flex: 1, textAlign: "right" }}>
-      {new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} {`${day}/${month}`}
+      {new Intl.DateTimeFormat("vi-VN", {
+        timeZone: VN_TIMEZONE,
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date()) + ` ${day}/${month}`}
     </BillText>
   </View>
 );
@@ -221,9 +226,18 @@ export const BillFooter = ({ label }: { label: string }) => (
 );
 
 export const BillTopDateTime = ({ note, label }: { note?: string; label: string }) => {
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const timeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const dateStr = new Intl.DateTimeFormat("vi-VN", {
+    timeZone: VN_TIMEZONE,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date());
+  const timeStr = new Intl.DateTimeFormat("vi-VN", {
+    timeZone: VN_TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date());
 
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6, alignItems: "flex-start" }}>

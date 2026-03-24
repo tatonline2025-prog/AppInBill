@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useFont } from "@/context/FontContext";
 import { useInvoices } from "@/context/InvoiceContext";
 import { InvoiceLayoutItem } from "@/types/invoice-layout";
+import { toVietnamISOString } from "@/utils/vnTimezone";
 import { MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import Constants from "expo-constants";
@@ -33,7 +34,7 @@ const sampleInvoice = {
     phone: "09xxxx",
     collectionFee: 3000,
   },
-  createdAt: new Date().toISOString(),
+  createdAt: toVietnamISOString(),
 };
 
 const defaultLayout: InvoiceLayoutItem[] = [
