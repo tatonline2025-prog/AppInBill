@@ -1,7 +1,7 @@
 import { Text, TextInput } from "@/components/StyledText";
 import { InvoiceInfo } from "@/types/invoice";
 import React from "react";
-import { ScrollView, TouchableOpacity, View } from "react-native";
+import { Pressable, ScrollView, TouchableOpacity, View } from "react-native";
 
 
 
@@ -9,8 +9,8 @@ import { ScrollView, TouchableOpacity, View } from "react-native";
  COMPONENT CON: Ô NHẬP & GỢI Ý
  ========================================================== */
 const getInvoiceColor = (item: InvoiceInfo) => {
-  if (item.isPaid) return "#9ca3af"; // xám nhạt đã đóng cước
   if (item.collectionStatus === "collected") return "#16a34a"; // xanh lá đã thu
+  if (item.isPaid) return "#6b7280"; // xám đã đóng cước
   return "#000000"; // đen chưa thu
 };
 
@@ -167,6 +167,7 @@ export default function SearchInput({
           >
             {suggestions.map((item, index) => {
               const color = getInvoiceColor(item);
+              const invoiceNumberWeight = item.collectionStatus === "collected" || item.isPaid ? "600" : "700";
               return (
                 <TouchableOpacity
                   key={index}
@@ -207,7 +208,7 @@ export default function SearchInput({
                       <Text style={{ fontWeight: "600", color, fontSize: 14 }}>
                         Mã Trạm: {item.recordBookCode}
                       </Text>
-                      <Text style={{ fontWeight: "600", color: "#2563eb", fontSize: 15 }}>{item.invoiceNumber}</Text>
+                      <Text style={{ fontWeight: invoiceNumberWeight, color, fontSize: 15 }}>{item.invoiceNumber}</Text>
                       <Text style={{ color: "#475569", fontSize: 14 }}>{item.customerName}</Text>
                     </>
                   )}
@@ -218,8 +219,7 @@ export default function SearchInput({
         </View>
       )}
 
-      {/* Checkbox lọc hóa đơn đã đóng cước - Bấm là hiển thị ngay
-      <Pressable
+      {/* <Pressable
         onPress={() => {
           onTogglePaidFilter?.(!showPaidFilter);
         }}

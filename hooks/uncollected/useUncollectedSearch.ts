@@ -161,9 +161,8 @@ export const useUncollectedSearch = (user: IUser | null) => {
         const normalizedCode = type === "station" ? code.trim().toUpperCase() : code.trim();
 
         // Backend so sánh isPaid === "true" (string), nên cần chuyển đổi
-        const isPaidValue = paidFilter !== undefined 
-          ? (paidFilter ? "true" : "false") 
-          : (showPaidFilter ? "true" : undefined);
+        const isPaidValue =
+          paidFilter === true ? "true" : (showPaidFilter ? "true" : undefined);
 
 // Xác định assignedUserId:
         // - Admin: LUÔN LUÔN KHÔNG truyền assignedUserId (xem tất cả)

@@ -27,6 +27,9 @@ import { DEFAULT_INVOICE_LAYOUT, InvoiceLayoutItem } from "@/types/invoice-layou
 // --- COMPONENT CON: ITEM HÓA ĐƠN ---
 const InvoiceItem = React.memo(
   function InvoiceItem({ item, isExpanded, onToggle, onRevert, onPrint, onUpdateInfo }: any) {
+    const invoiceNumberColor = item.collectionStatus === "collected" ? "#16a34a" : (item.isPaid ? "#6b7280" : "#000000");
+    const invoiceNumberWeight = item.collectionStatus === "collected" || item.isPaid ? "600" : "700";
+
     return (
       <View style={{ marginBottom: 8 }}>
         <TouchableOpacity
@@ -42,7 +45,7 @@ const InvoiceItem = React.memo(
         >
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: "600", color: "#2563eb" }}>
+              <Text style={{ fontWeight: invoiceNumberWeight, color: invoiceNumberColor }}>
                 {shortenCustomerCode(item.invoiceNumber || item.customerPhone || '')} - {item.customerName}
               </Text>
               <Text style={{ color: "#475569" }}>Tiền: {Number(item.totalAmount).toLocaleString("vi-VN")} đ</Text>
@@ -342,7 +345,14 @@ export default function Collected() {
                   ) : (
                     <View>
                       <Text style={{ fontWeight: "700", color: "#6366f1" }}>Trạm: {item.recordBookCode}</Text>
-                      <Text style={{ fontWeight: "600", color: "#2563eb" }}>{item.invoiceNumber}</Text>
+                      <Text
+                        style={{
+                          fontWeight: item.collectionStatus === "collected" || item.isPaid ? "600" : "700",
+                          color: item.collectionStatus === "collected" ? "#16a34a" : (item.isPaid ? "#6b7280" : "#000000"),
+                        }}
+                      >
+                        {item.invoiceNumber}
+                      </Text>
                       <Text style={{ fontSize: 12 }}>{item.customerName}</Text>
                     </View>
                   )}

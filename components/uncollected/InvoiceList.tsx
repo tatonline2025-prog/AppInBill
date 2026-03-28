@@ -87,17 +87,26 @@ const InvoiceItem = memo(
           <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
             {/* Bên Trái (70%) */}
             <View style={{ flex: 3.3, marginRight: 8 }}>
-              <Text style={{ fontWeight: "600", color: item.collectionStatus === "collected" ? "#16a34a" : (item.isPaid ? "#6b7280" : "#000000") }}>
+              <Text
+                style={{
+                  fontWeight: item.collectionStatus === "collected" || item.isPaid ? "600" : "700",
+                  color: item.collectionStatus === "collected" ? "#16a34a" : (item.isPaid ? "#6b7280" : "#000000"),
+                }}
+              >
                 {displayInvoiceNumber} - {Number(item.totalAmount).toLocaleString("vi-VN")}
               </Text>
               <Text style={{ color: "#475569" }} numberOfLines={1} ellipsizeMode="tail">
                 Trạm: {item.recordBookCode || 'N/A'} - {item.customerName}
               </Text>
-              {item.isPaid && (
+              {/* {item.isPaid && (
                 <Text style={{ color: "#6b7280", fontWeight: "600", fontSize: 12, marginTop: 2 }}>
                   ✓ Đã đóng cước
                 </Text>
-              )}
+              )} */}
+              {/* Text Chi tiết bên dưới */}
+              <Text style={{ fontSize: 12, color: "#94a3b8", textAlign: "left" }}>
+                {isExpanded ? "▲ Thu gọn" : "▼ Chi tiết"}
+              </Text>
             </View>
 
             {/* Bên Phải (30%): Buttons 2 dòng */}
@@ -175,10 +184,7 @@ const InvoiceItem = memo(
                 </TouchableOpacity>
               </View>
 
-              {/* Text Chi tiết bên dưới */}
-              <Text style={{ fontSize: 12, color: "#94a3b8", textAlign: "center" }}>
-                {isExpanded ? "▲ Thu gọn" : "▼ Chi tiết"}
-              </Text>
+              
             </View>
           </View>
         </TouchableOpacity>

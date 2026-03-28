@@ -124,7 +124,7 @@ export default function ProfileScreen() {
         <View style={styles.card}>
           <View style={[styles.infoRow, { marginBottom: -3 }]}>
             <Text>Phiên bản ứng dụng:</Text>
-            <Text>{version} - 19/12/2025</Text>
+            <Text>{version} - 28/03/2026</Text>
           </View>
         </View>
 

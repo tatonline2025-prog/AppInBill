@@ -247,9 +247,13 @@ export default function Uncollected() {
 
             // Cập nhật trong danh sách invoiceData nếu đang tìm kiếm
             if (isSearch && setInvoiceData && invoiceData) {
-              setInvoiceData((prevList) =>
-                prevList.map((item) => (item._id === targetInvoice._id ? updatedInvoice : item))
-              );
+              setInvoiceData((prevList) => {
+                if (showPaidFilter && !newIsPaid) {
+                  return prevList.filter((item) => item._id !== targetInvoice._id);
+                }
+
+                return prevList.map((item) => (item._id === targetInvoice._id ? updatedInvoice : item));
+              });
             }
 
             // Cập nhật trong danh sách uncolInvoice (danh sách chưa thu)
