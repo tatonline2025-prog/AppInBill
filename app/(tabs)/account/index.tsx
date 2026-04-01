@@ -85,10 +85,17 @@ export default function ProfileScreen() {
     setModalVisible(true);
   };
 
+  const parseFeeValue = (input: string) => {
+    const normalized = input.replace(/[^\d]/g, "");
+    if (!normalized) return NaN;
+    return Number(normalized);
+  };
+
   // --- HÀM 2: Gửi dữ liệu về Backend (CORE LOGIC) ---
   const handleUpdateFee = async () => {
-    if (!newFee) {
-      showMessage({ message: "Vui lòng nhập số tiền!", type: "warning" });
+    const parsedFee = parseFeeValue(newFee);
+    if (!Number.isFinite(parsedFee) || parsedFee < 0) {
+      showMessage({ message: "Phí dịch vụ không hợp lệ!", type: "warning" });
       return;
     }
 
@@ -99,9 +106,7 @@ export default function ProfileScreen() {
 
     setLoading(true);
     try {
-      const res = await updateCollectionFee(user?._id, Number(newFee));
-
-      // console.log(res.data.user.collectionFee);
+      const res = await updateCollectionFee(user._id, parsedFee);
 
       if (res.status === 200) {
         showMessage({ message: "Cập nhật phí thành công!", type: "success" });
@@ -112,7 +117,9 @@ export default function ProfileScreen() {
       }
     } catch (error) {
       console.error("Lỗi update fee:", error);
-      showMessage({ message: "Lỗi kết nối hoặc phiên đăng nhập hết hạn!", type: "danger" });
+      const fallbackMessage = "Không thể cập nhật phí dịch vụ";
+      const errorMessage = error instanceof Error ? error.message : fallbackMessage;
+      showMessage({ message: errorMessage || fallbackMessage, type: "danger" });
     } finally {
       setLoading(false);
     }
