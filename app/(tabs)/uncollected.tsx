@@ -361,7 +361,7 @@ export default function Uncollected() {
         loading={isLoading}
         searchType={searchType}
         customerCode={customerCode}
-        // invoice={invoice}
+        selectedInvoice={invoice}
         invoiceData={invoiceData}
         onSelectInvoice={setInvoice}
         onMarkCollected={handleMarkAsCollected}

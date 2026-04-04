@@ -30,7 +30,7 @@ export default function SearchInput({
   onChange: (text: string) => void;
   onSearch: () => void;
   suggestions: InvoiceInfo[];
-  onSelect: (code: string) => void;
+  onSelect: (item: InvoiceInfo) => void;
   searchType: string;
   onChangeSearchType: (type: string) => void;
   showPaidFilter?: boolean;
@@ -180,13 +180,7 @@ export default function SearchInput({
                     borderColor: "#f1f5f9",
                   }}
                   onPress={() => {
-                    if (searchType === "customer") {
-                      onSelect(item.invoiceNumber);
-                    } else if (searchType === "station") {
-                      onSelect(item.recordBookCode!);
-                    } else if (searchType === "customerName") {
-                      onSelect(item.customerName);
-                    }
+                    onSelect(item);
                   }}
                 >
                   <View

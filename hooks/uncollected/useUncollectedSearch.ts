@@ -1,5 +1,5 @@
 // --- File: hooks/useUncollectedSearch.ts ---
-import { fetchAllPaidInvoices_API, searchInvoice_API } from "@/api/invoice.api";
+import { fetchAllPaidInvoices_API, fetchallInvoice, searchInvoice_API } from "@/api/invoice.api";
 import { InvoiceInfo } from "@/types/invoice";
 import { IUser } from "@/types/user";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -154,7 +154,13 @@ export const useUncollectedSearch = (user: IUser | null) => {
 
   // --- 2. Hàm gọi API tìm kiếm ---
   const fetchData = useCallback(
-    async (code: string, type: SearchType, pageToFetch: number = 1, paidFilter?: boolean): Promise<SearchResult> => {
+    async (
+      code: string,
+      type: SearchType,
+      pageToFetch: number = 1,
+      paidFilter?: boolean,
+      enableDeepFallback: boolean = false
+    ): Promise<SearchResult> => {
       if (!code.trim()) return { data: [], total: 0, totalAmount: 0 };
       
       try {
@@ -164,17 +170,11 @@ export const useUncollectedSearch = (user: IUser | null) => {
         const isPaidValue =
           paidFilter === true ? "true" : (showPaidFilter ? "true" : undefined);
 
-// Xác định assignedUserId:
-        // - Admin: LUÔN LUÔN KHÔNG truyền assignedUserId (xem tất cả)
-        // - User: Khi tìm hóa đơn CHƯA THU thì KHÔNG truyền assignedUserId để xem tất cả
-        //         Khi tìm hóa đơn đã đóng cước (isPaid=true) thì truyền assignedUserId
-        const isUncollected = true; // Hook này luôn tìm hóa đơn chưa thu
-        const shouldShowAll = isAdmin || isUncollected;
-        const assignedUserId = shouldShowAll ? undefined : (user?._id || undefined);
+        // Với tab hóa đơn chưa thu: luôn bỏ lọc theo người thu để mọi tài khoản cùng thấy dữ liệu.
+        const assignedUserId = undefined;
         
-        // Admin: KHÔNG truyền province (xem tất cả các tỉnh)
-        // User: Truyền province nếu có
-        const userProvince = isAdmin ? undefined : (user?.province || undefined);
+        // Với tab hóa đơn chưa thu: luôn bỏ lọc province để mọi tài khoản cùng thấy dữ liệu.
+        const userProvince = undefined;
 
 
         if (!user) return { data: [], total: 0, totalAmount: 0 };
@@ -192,9 +192,26 @@ export const useUncollectedSearch = (user: IUser | null) => {
 
         const parsed = parseSearchResponse(res);
 
-        // Fallback for customer-name search when backend does not support searchType=customerName fully.
-        if (type === "customerName" && parsed.data.length === 0) {
-          const fallbackRes = await searchInvoice_API(
+        // Customer-name search can be incomplete on some backend versions.
+        // Run multiple queries (accented + non-accented) and merge to avoid missing invoices.
+        if (type === "customerName") {
+          const normalizedKeywordRaw = normalizeText(normalizedCode);
+
+          const fallbackCustomerNameNoAccentRes =
+            normalizedKeywordRaw && normalizedKeywordRaw !== normalizedCode
+              ? await searchInvoice_API(
+                  "not_collected",
+                  assignedUserId,
+                  userProvince,
+                  normalizedKeywordRaw,
+                  "customerName",
+                  pageToFetch,
+                  50,
+                  isPaidValue
+                )
+              : undefined;
+
+          const fallbackCustomerRes = await searchInvoice_API(
             "not_collected",
             assignedUserId,
             userProvince,
@@ -204,17 +221,89 @@ export const useUncollectedSearch = (user: IUser | null) => {
             50,
             isPaidValue
           );
+          const fallbackCustomerNoAccentRes =
+            normalizedKeywordRaw && normalizedKeywordRaw !== normalizedCode
+              ? await searchInvoice_API(
+                  "not_collected",
+                  assignedUserId,
+                  userProvince,
+                  normalizedKeywordRaw,
+                  "customer",
+                  pageToFetch,
+                  50,
+                  isPaidValue
+                )
+              : undefined;
 
-          const fallbackParsed = parseSearchResponse(fallbackRes);
-          const keyword = normalizeText(normalizedCode);
-          const filtered = fallbackParsed.data.filter((item) =>
+          const fallbackCustomerNameNoAccentParsed = fallbackCustomerNameNoAccentRes
+            ? parseSearchResponse(fallbackCustomerNameNoAccentRes)
+            : null;
+          const fallbackCustomerParsed = parseSearchResponse(fallbackCustomerRes);
+          const fallbackCustomerNoAccentParsed = fallbackCustomerNoAccentRes
+            ? parseSearchResponse(fallbackCustomerNoAccentRes)
+            : null;
+          const keyword = normalizedKeywordRaw;
+          const filteredPrimary = parsed.data.filter((item) =>
             normalizeText(item.customerName || "").includes(keyword)
           );
+          const filteredCustomerNameNoAccent = (fallbackCustomerNameNoAccentParsed?.data || []).filter((item) =>
+            normalizeText(item.customerName || "").includes(keyword)
+          );
+          const filteredCustomer = fallbackCustomerParsed.data.filter((item) =>
+            normalizeText(item.customerName || "").includes(keyword)
+          );
+          const filteredCustomerNoAccent = (fallbackCustomerNoAccentParsed?.data || []).filter((item) =>
+            normalizeText(item.customerName || "").includes(keyword)
+          );
+          const mergedById = new Map<string, InvoiceInfo>();
+          [
+            ...filteredPrimary,
+            ...filteredCustomerNameNoAccent,
+            ...filteredCustomer,
+            ...filteredCustomerNoAccent,
+          ].forEach((item) => {
+            if (item?._id) mergedById.set(item._id, item);
+          });
+
+          // Deep fallback: only when user explicitly searches.
+          // This avoids heavy API calls during debounced suggestions.
+          if (enableDeepFallback) {
+            const maxPages = 20;
+            const pageSize = 200;
+            let currentPage = 1;
+            let totalPages = 1;
+
+            while (currentPage <= totalPages && currentPage <= maxPages) {
+              const fullPageRes = await fetchallInvoice(
+                currentPage,
+                pageSize,
+                undefined,
+                "not_collected",
+                undefined,
+                undefined,
+                undefined,
+                undefined
+              );
+              const pageData = Array.isArray(fullPageRes?.data?.data) ? fullPageRes.data.data : [];
+              totalPages = Number(fullPageRes?.data?.pagination?.totalPages) || totalPages;
+
+              pageData.forEach((item: InvoiceInfo) => {
+                if (item?._id && normalizeText(item.customerName || "").includes(keyword)) {
+                  mergedById.set(item._id, item);
+                }
+              });
+
+              if (pageData.length === 0) break;
+              currentPage += 1;
+            }
+          }
+
+          const merged = Array.from(mergedById.values());
 
           return {
-            data: filtered,
-            total: filtered.length,
-            totalAmount: filtered.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0),
+            data: merged,
+            total: merged.length,
+            totalAmount: merged.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0),
           };
         }
 
@@ -266,11 +355,20 @@ export const useUncollectedSearch = (user: IUser | null) => {
     if (isSearch === 1) setIsSearch(0);
   };
 
-  const handleSelectSuggestion = (code: string) => {
+  const handleSelectSuggestion = (item: InvoiceInfo) => {
+    const code =
+      searchType === "station"
+        ? item.recordBookCode || ""
+        : searchType === "customerName"
+        ? item.customerName || ""
+        : item.invoiceNumber || "";
+
+    if (!code) return;
+
     isSelectionRef.current = true;
     setCustomerCode(code);
     setSuggestions([]);
-    handleSearch(code, searchType);
+    handleSearch(code, searchType, undefined, item._id);
   };
 
   // Hàm xử lý khi toggle checkbox lọc isPaid
@@ -292,7 +390,12 @@ export const useUncollectedSearch = (user: IUser | null) => {
   };
 
   // Hàm tìm kiếm chính thức
-  const handleSearch = async (inputCode?: string, typeOverride?: SearchType, paidFilterOverride?: boolean) => {
+  const handleSearch = async (
+    inputCode?: string,
+    typeOverride?: SearchType,
+    paidFilterOverride?: boolean,
+    preferredInvoiceId?: string
+  ) => {
     const rawCode = inputCode !== undefined ? inputCode : customerCode;
     const finalCode = (rawCode || "").trim();
 
@@ -318,7 +421,7 @@ export const useUncollectedSearch = (user: IUser | null) => {
 
     // Gọi API trang 1
     const normalizedSearchCode = currentSearchType === "station" ? finalCode.toUpperCase() : finalCode;
-    const res = await fetchData(normalizedSearchCode, currentSearchType, 1, currentPaidFilter);
+    const res = await fetchData(normalizedSearchCode, currentSearchType, 1, currentPaidFilter, true);
 
     setIsLoading(false);
 
@@ -349,12 +452,19 @@ export const useUncollectedSearch = (user: IUser | null) => {
         icon: "success",
       });
     } else if (currentSearchType === "customer") {
-      const found = newData.find(
+      const preferred =
+        preferredInvoiceId
+          ? newData.find((item: any) => item?._id === preferredInvoiceId)
+          : undefined;
+      const exactInvoiceNumber = newData.find(
+        (item: any) => item?.invoiceNumber?.toLowerCase() === normalizedSearchCode.toLowerCase()
+      );
+      const fallback = newData.find(
         (item: any) =>
           item?.invoiceNumber?.toLowerCase().includes(normalizedSearchCode.toLowerCase()) ||
           item?.customerName?.toLowerCase().includes(normalizedSearchCode.toLowerCase())
       );
-      const targetInvoice = found || newData[0];
+      const targetInvoice = preferred || exactInvoiceNumber || fallback || newData[0];
 
       if (targetInvoice) {
         setInvoice(targetInvoice);

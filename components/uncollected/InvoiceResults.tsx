@@ -10,6 +10,7 @@ type InvoiceResultsProps = {
   loading: boolean;
   searchType: string;
   customerCode: string;
+  selectedInvoice?: InvoiceInfo | null;
   invoiceData: InvoiceInfo[];
   onSelectInvoice: (invoice: InvoiceInfo | null) => void;
   onMarkCollected: (invoice?: InvoiceInfo) => void;
@@ -29,6 +30,7 @@ export default function InvoiceResults({
   loading,
   searchType,
   customerCode,
+  selectedInvoice,
   invoiceData,
   onSelectInvoice,
   onMarkCollected,
@@ -91,7 +93,7 @@ export default function InvoiceResults({
   }
 
   // searchType === "customer" và có customerCode → hiển thị chi tiết 1 hóa đơn
-  const targetInvoice = invoiceData[0];
+  const targetInvoice = selectedInvoice || invoiceData[0];
 
   return (
     <View style={{ width: "100%", marginTop: 10 }}>
