@@ -26,12 +26,12 @@ export default function QuickAddInvoiceModal({
   onSuccess,
 }: QuickAddInvoiceModalProps) {
   const prefixOptions = ["PB070900", "PB070700", "PB050900"];
-const [selectedPrefix, setSelectedPrefix] = useState<string | null>(null);
-const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [selectedPrefix, setSelectedPrefix] = useState<string | null>(null);
+  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
-const [isLoading, setIsLoading] = useState(false);
-const [isValidInvoice, setIsValidInvoice] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isValidInvoice, setIsValidInvoice] = useState(false);
 
   const resetForm = () => {
     setSelectedPrefix(null);
@@ -52,10 +52,10 @@ const [isValidInvoice, setIsValidInvoice] = useState(false);
       return;
     }
     const len = trimmed.length;
-if (selectedPrefix) {
+    if (selectedPrefix) {
       setIsValidInvoice(trimmed.startsWith(selectedPrefix) && trimmed.length === selectedPrefix.length + 5);
     } else {
-      setIsValidInvoice(len >= 10 && len <= 13 && /^\d+$/.test(trimmed));
+      setIsValidInvoice(len > 0);
     }
   }, [invoiceNumber, selectedPrefix]);
 
@@ -65,7 +65,7 @@ if (selectedPrefix) {
     const trimmedNumber = invoiceNumber.trim();
     if (!isValidInvoice) {
       showMessage({
-        message: `Mã hóa đơn không hợp lệ. ${selectedPrefix ? `Phải bắt đầu bằng ${selectedPrefix} + 5 số.` : 'Tự nhập 10-13 số.'} Preview: ${fullPreview}`,
+        message: `Mã hóa đơn không hợp lệ. ${selectedPrefix ? `Phải bắt đầu bằng ${selectedPrefix} + 5 số.` : "Vui lòng nhập mã hóa đơn."} Preview: ${fullPreview}`,
         type: "danger",
       });
       return;
@@ -141,7 +141,7 @@ if (selectedPrefix) {
           <View style={styles.form}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-Mã KH (chọn prefix tự điền 5 số cuối, hoặc tự gõ 10-13 số) <Text style={styles.required}>*</Text>
+                Mã KH (chọn prefix + 5 số cuối, hoặc tự nhập tự do) <Text style={styles.required}>*</Text>
               </Text>
               <View style={styles.prefixRow}>
                 {prefixOptions.map((prefix) => {
@@ -175,16 +175,16 @@ Mã KH (chọn prefix tự điền 5 số cuối, hoặc tự gõ 10-13 số) <T
                     backgroundColor: isValidInvoice ? '#f0fdf4' : '#fef2f2',
                   }
                 ]}
-                placeholder={selectedPrefix ? "Nhập 5 số tiếp theo" : "Tự nhập 10-13 số"}
+                placeholder={selectedPrefix ? "Nhập 5 số tiếp theo" : "Nhập mã hóa đơn"}
                 value={invoiceNumber}
                 onChangeText={setInvoiceNumber}
-                keyboardType="numeric"
+                keyboardType={selectedPrefix ? "numeric" : "default"}
                 placeholderTextColor="#94a3b8"
-                maxLength={13}
+                maxLength={selectedPrefix ? 13 : undefined}
               />
               {invoiceNumber.length > 0 && (
                 <Text style={{ fontSize: 12, color: isValidInvoice ? '#16a34a' : '#ef4444', marginTop: 4 }}>
-                  {isValidInvoice ? '✓ OK' : `❌ ${selectedPrefix ? `Bắt đầu ${selectedPrefix}` : '10-13 số'}. Preview: ${fullPreview}`}
+                  {isValidInvoice ? '✓ OK' : `❌ ${selectedPrefix ? `Bắt đầu ${selectedPrefix}` : 'Mã không được để trống'}. Preview: ${fullPreview}`}
                 </Text>
               )}
               {selectedPrefix && (
@@ -235,10 +235,10 @@ Mã KH (chọn prefix tự điền 5 số cuối, hoặc tự gõ 10-13 số) <T
               style={[
                 styles.button, 
                 styles.submitButton,
-{ opacity: isLoading || !isValidInvoice ? 0.6 : 1 }
+                { opacity: isLoading || !isValidInvoice ? 0.6 : 1 }
               ]}
               onPress={handleSubmit}
-disabled={isLoading || !isValidInvoice}
+              disabled={isLoading || !isValidInvoice}
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" size="small" />

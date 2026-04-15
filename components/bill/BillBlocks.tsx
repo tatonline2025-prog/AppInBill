@@ -13,8 +13,12 @@ const isMissing = (value: any) => {
   return false;
 };
 const resolveCollectionFee = (invoice: InvoiceInfo | null, userFee?: number) => {
-  const fallbackFee = Number(userFee) || 0;
-  if (fallbackFee > 0) return fallbackFee;
+  // If current user fee is explicitly set (including 0), always honor it.
+  // This keeps behavior consistent: fee > 0 shows; fee = 0 hides.
+  if (userFee !== null && userFee !== undefined && !Number.isNaN(Number(userFee))) {
+    const normalizedUserFee = Number(userFee);
+    return normalizedUserFee > 0 ? normalizedUserFee : 0;
+  }
 
   const assignedFeeRaw = invoice?.assignedTo?.collectionFee;
   if (assignedFeeRaw !== null && assignedFeeRaw !== undefined) {

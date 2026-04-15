@@ -64,6 +64,7 @@ export const useUncollectedSearch = (user: IUser | null) => {
   const [showPaidFilter, setShowPaidFilter] = useState(false);
 
   const isSelectionRef = useRef(false);
+  const customerNameSearchCacheRef = useRef<Map<string, SearchResult>>(new Map());
 
   // ✅ isAdmin được sử dụng trong hook này để phân quyền xem hóa đơn
   const isAdmin = user?.role === "admin";
@@ -196,6 +197,11 @@ export const useUncollectedSearch = (user: IUser | null) => {
         // Run multiple queries (accented + non-accented) and merge to avoid missing invoices.
         if (type === "customerName") {
           const normalizedKeywordRaw = normalizeText(normalizedCode);
+          const cacheKey = `${normalizedKeywordRaw}|${pageToFetch}|${isPaidValue ?? "all"}`;
+          if (enableDeepFallback && pageToFetch === 1) {
+            const cached = customerNameSearchCacheRef.current.get(cacheKey);
+            if (cached) return cached;
+          }
 
           const fallbackCustomerNameNoAccentRes =
             normalizedKeywordRaw && normalizedKeywordRaw !== normalizedCode
@@ -265,46 +271,77 @@ export const useUncollectedSearch = (user: IUser | null) => {
             if (item?._id) mergedById.set(item._id, item);
           });
 
-          // Deep fallback: only when user explicitly searches.
-          // This avoids heavy API calls during debounced suggestions.
-          if (enableDeepFallback) {
-            const maxPages = 20;
+          // Deep fallback: only when user explicitly searches and quick queries returned too few items.
+          // This keeps normal searches fast while still fixing edge cases caused by incomplete backend search.
+          const shouldRunDeepFallback = enableDeepFallback && mergedById.size <= 1;
+          if (shouldRunDeepFallback) {
+            const maxPages = 8;
             const pageSize = 200;
-            let currentPage = 1;
-            let totalPages = 1;
+            const firstPageRes = await fetchallInvoice(
+              1,
+              pageSize,
+              undefined,
+              "not_collected",
+              undefined,
+              undefined,
+              undefined,
+              undefined
+            );
+            const firstPageData = Array.isArray(firstPageRes?.data?.data) ? firstPageRes.data.data : [];
+            const totalPages = Number(firstPageRes?.data?.pagination?.totalPages) || 1;
 
-            while (currentPage <= totalPages && currentPage <= maxPages) {
-              const fullPageRes = await fetchallInvoice(
-                currentPage,
-                pageSize,
-                undefined,
-                "not_collected",
-                undefined,
-                undefined,
-                undefined,
-                undefined
-              );
-              const pageData = Array.isArray(fullPageRes?.data?.data) ? fullPageRes.data.data : [];
-              totalPages = Number(fullPageRes?.data?.pagination?.totalPages) || totalPages;
+            firstPageData.forEach((item: InvoiceInfo) => {
+              if (item?._id && normalizeText(item.customerName || "").includes(keyword)) {
+                mergedById.set(item._id, item);
+              }
+            });
 
-              pageData.forEach((item: InvoiceInfo) => {
-                if (item?._id && normalizeText(item.customerName || "").includes(keyword)) {
-                  mergedById.set(item._id, item);
-                }
+            const upperPage = Math.min(totalPages, maxPages);
+            const batchSize = 3;
+            for (let startPage = 2; startPage <= upperPage; startPage += batchSize) {
+              const endPage = Math.min(startPage + batchSize - 1, upperPage);
+              const pageRequests: Promise<any>[] = [];
+              for (let pageNumber = startPage; pageNumber <= endPage; pageNumber += 1) {
+                pageRequests.push(
+                  fetchallInvoice(
+                    pageNumber,
+                    pageSize,
+                    undefined,
+                    "not_collected",
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined
+                  )
+                );
+              }
+
+              const batchResults = await Promise.all(pageRequests);
+              batchResults.forEach((fullPageRes) => {
+                const pageData = Array.isArray(fullPageRes?.data?.data) ? fullPageRes.data.data : [];
+                pageData.forEach((item: InvoiceInfo) => {
+                  if (item?._id && normalizeText(item.customerName || "").includes(keyword)) {
+                    mergedById.set(item._id, item);
+                  }
+                });
               });
-
-              if (pageData.length === 0) break;
-              currentPage += 1;
             }
           }
 
           const merged = Array.from(mergedById.values());
-
-          return {
+          const result: SearchResult = {
             data: merged,
             total: merged.length,
             totalAmount: merged.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0),
           };
+          if (enableDeepFallback && pageToFetch === 1) {
+            customerNameSearchCacheRef.current.set(cacheKey, result);
+            if (customerNameSearchCacheRef.current.size > 20) {
+              const oldestKey = customerNameSearchCacheRef.current.keys().next().value;
+              if (oldestKey) customerNameSearchCacheRef.current.delete(oldestKey);
+            }
+          }
+          return result;
         }
 
         return parsed;
