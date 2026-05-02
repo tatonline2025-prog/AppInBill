@@ -3,9 +3,8 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   // Container chính
   container: {
-    flexGrow: 1,
+    flex: 1,
     backgroundColor: "#f8fafc",
-    // alignItems: "center",
     padding: 20,
   },
   // Thanh tìm kiếm

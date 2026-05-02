@@ -1,4 +1,5 @@
-import { updateCollectionFee } from "@/api/user.api";
+import { getUserLayoutLocal } from "@/api/invoicelayout.api";
+import { changePassword, updateCollectionFee } from "@/api/user.api";
 import { DynamicNotiInvoiceLayout } from "@/components/InvoiceLayout";
 import { Text } from "@/components/StyledText";
 import { useAuth } from "@/context/AuthContext";
@@ -10,7 +11,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
 import { GestureHandlerRootView, TextInput } from "react-native-gesture-handler";
@@ -72,6 +73,16 @@ export default function ProfileScreen() {
   const [newFee, setNewFee] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // --- STATE ĐỔI MẬT KHẨU ---
+  const [pwModalVisible, setPwModalVisible] = useState(false);
+  const [oldPw, setOldPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+
+  // --- STATE LAYOUT XEM TRƯỚC ---
+  const [previewLayout, setPreviewLayout] = useState<InvoiceLayoutItem[]>(defaultLayout);
+
   const version = Constants.expoConfig?.version || "1.0.0";
 
   const viewShotRef = useRef(null);
@@ -79,10 +90,45 @@ export default function ProfileScreen() {
   // --- STATE QUẢN LÝ VIỆC THAY ĐỔI SIZE CHỮ ---
   const { scale, changeScale } = useFont();
 
+  // --- Load layout riêng của user từ AsyncStorage ---
+  useEffect(() => {
+    if (!user?._id) return;
+    getUserLayoutLocal(user._id, "Thông báo điện Lấp Vò")
+      .then((saved) => { if (saved) setPreviewLayout(saved); })
+      .catch(() => {});
+  }, [user?._id]);
+
   // --- HÀM 1: Mở modal và gán giá trị hiện tại ---
   const openEditModal = () => {
     setNewFee(user?.collectionFee?.toString() || "0");
     setModalVisible(true);
+  };
+
+  // --- HÀM ĐỔI MẬT KHẨU ---
+  const handleChangePassword = async () => {
+    if (!newPw || !oldPw) {
+      showMessage({ message: "Vui lòng nhập đầy đủ thông tin", type: "warning" });
+      return;
+    }
+    if (newPw.length < 6) {
+      showMessage({ message: "Mật khẩu mới phải ít nhất 6 ký tự", type: "warning" });
+      return;
+    }
+    if (newPw !== confirmPw) {
+      showMessage({ message: "Mật khẩu xác nhận không khớp", type: "warning" });
+      return;
+    }
+    setPwLoading(true);
+    try {
+      await changePassword(oldPw, newPw);
+      showMessage({ message: "Đổi mật khẩu thành công!", type: "success" });
+      setPwModalVisible(false);
+      setOldPw(""); setNewPw(""); setConfirmPw("");
+    } catch (e: any) {
+      showMessage({ message: e?.message || "Không thể đổi mật khẩu", type: "danger" });
+    } finally {
+      setPwLoading(false);
+    }
   };
 
   const parseFeeValue = (input: string) => {
@@ -131,7 +177,8 @@ export default function ProfileScreen() {
         <View style={styles.card}>
           <View style={[styles.infoRow, { marginBottom: -3 }]}>
             <Text>Phiên bản ứng dụng:</Text>
-            <Text>{version} - 04/04/2026</Text>
+            <Text>{version} - 02/05/2026</Text>
+
           </View>
         </View>
 
@@ -205,11 +252,11 @@ export default function ProfileScreen() {
             <Text style={styles.previewSubtitle}>(Kéo thanh trượt để chỉnh cỡ chữ)</Text>
 
             <View style={styles.paperContainer}>
-              {/* Component in hóa đơn Lấp Vò */}
+              {/* Component in hóa đơn - theo layout đã lưu của user */}
               <DynamicNotiInvoiceLayout
                 forwardedRef={viewShotRef}
                 invoice={sampleInvoice as any}
-                layout={defaultLayout}
+                layout={previewLayout}
                 visible={true}
               />
             </View>
@@ -223,15 +270,18 @@ export default function ProfileScreen() {
             <MaterialIcons name="chevron-right" size={20} color="#888" />
           </TouchableOpacity>
 
-          {user?.role === "admin" && (
-            <TouchableOpacity
-              style={styles.actionRow}
-              onPress={() => router.push("../../invoiceLayoutConfigScreen/invoiceformlist")}
-            >
-              <Text style={styles.actionText}>Điều chỉnh form hoá đơn</Text>
-              <MaterialIcons name="chevron-right" size={20} color="#888" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => router.push("../../invoiceLayoutConfigScreen/invoiceformlist")}
+          >
+            <Text style={styles.actionText}>Điều chỉnh form hoá đơn</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#888" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionRow} onPress={() => setPwModalVisible(true)}>
+            <Text style={styles.actionText}>Đổi mật khẩu</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#888" />
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionRow} onPress={logout}>
             <Text style={[styles.actionText, { color: "red" }]}>Đăng xuất</Text>
@@ -273,6 +323,63 @@ export default function ProfileScreen() {
 
                 <TouchableOpacity style={[styles.btn, styles.btnSave]} onPress={handleUpdateFee} disabled={loading}>
                   <Text style={[styles.btnText, { color: "white" }]}>{loading ? "Đang lưu..." : "Lưu thay đổi"}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </GestureHandlerRootView>
+      </Modal>
+
+      {/* --- MODAL ĐỔI MẬT KHẨU --- */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={pwModalVisible}
+        onRequestClose={() => setPwModalVisible(false)}
+      >
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <KeyboardAvoidingView behavior="height" style={styles.modalContainer}>
+            <View style={styles.modalView}>
+              <Text style={styles.modalTitle}>Đổi mật khẩu</Text>
+
+              <Text style={styles.modalLabel}>Mật khẩu hiện tại:</Text>
+              <TextInput
+                style={styles.input}
+                onChangeText={setOldPw}
+                value={oldPw}
+                secureTextEntry
+                placeholder="Nhập mật khẩu cũ"
+                autoFocus
+              />
+
+              <Text style={[styles.modalLabel, { marginTop: 10 }]}>Mật khẩu mới:</Text>
+              <TextInput
+                style={styles.input}
+                onChangeText={setNewPw}
+                value={newPw}
+                secureTextEntry
+                placeholder="Tối thiểu 6 ký tự"
+              />
+
+              <Text style={[styles.modalLabel, { marginTop: 10 }]}>Xác nhận mật khẩu mới:</Text>
+              <TextInput
+                style={styles.input}
+                onChangeText={setConfirmPw}
+                value={confirmPw}
+                secureTextEntry
+                placeholder="Nhập lại mật khẩu mới"
+              />
+
+              <View style={[styles.modalButtons, { marginTop: 16 }]}>
+                <TouchableOpacity
+                  style={[styles.btn, styles.btnCancel]}
+                  onPress={() => { setPwModalVisible(false); setOldPw(""); setNewPw(""); setConfirmPw(""); }}
+                >
+                  <Text style={styles.btnText}>Hủy</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.btn, styles.btnSave]} onPress={handleChangePassword} disabled={pwLoading}>
+                  <Text style={[styles.btnText, { color: "white" }]}>{pwLoading ? "Đang lưu..." : "Đổi mật khẩu"}</Text>
                 </TouchableOpacity>
               </View>
             </View>

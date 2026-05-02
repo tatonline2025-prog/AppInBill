@@ -1,14 +1,14 @@
 // --- File: components/uncollected/ui/EditModal.tsx ---
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 // Định nghĩa các loại dữ liệu có thể sửa
@@ -40,7 +40,14 @@ export default function EditModal({ visible, onClose, onSave, session }: EditMod
 
   const handleSave = () => {
     if (!session) return;
-    onSave(session.key, tempValue);
+    let finalValue: string | number | null = tempValue;
+    if (session.type === "number") {
+      // Chấp nhận cả "150.000", "150,000", "150000" → 150000
+      const cleaned = tempValue.replace(/[.\s]/g, "").replace(",", "");
+      const num = parseInt(cleaned, 10);
+      finalValue = isNaN(num) ? null : num;
+    }
+    onSave(session.key, finalValue);
     onClose();
   };
 

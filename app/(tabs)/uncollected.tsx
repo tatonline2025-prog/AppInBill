@@ -1,13 +1,13 @@
 // --- File: app/(tabs)/uncollected.tsx ---
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, RefreshControl, ScrollView } from "react-native";
 import { showMessage } from "react-native-flash-message";
 import ViewShot from "react-native-view-shot";
 
 // --- Import API & Component ---
-import { fetch20InvoiceLargest, fetchTop3Stations, handleToggle_API, handleToggleIsPaid_API } from "@/api/invoice.api";
+import { fetch20InvoiceLargest, fetchTop3Stations, handleToggle_API, handleToggleIsPaid_API, updateInvoice } from "@/api/invoice.api";
 import { DynamicInvoiceLayout, DynamicNotiInvoiceLayout } from "@/components/InvoiceLayout";
 import PrinterModal from "@/components/PrinterModal";
 import InvoiceResults from "@/components/uncollected/InvoiceResults";
@@ -150,63 +150,65 @@ export default function Uncollected() {
     const targetInvoice = selectedInvoice || invoice;
     if (!targetInvoice) return;
 
-    Alert.alert("Xác nhận thu tiền", "Bạn có chắc chắn muốn đánh dấu hóa đơn này là đã thu?", [
-      { text: "Hủy", style: "cancel" },
-      {
-        text: "Xác nhận",
-        style: "destructive",
-        onPress: async () => {
-          const token = await AsyncStorage.getItem("token");
-          if (!token) {
-            showMessage({ message: "Lỗi xác thực, vui lòng đăng nhập lại.", type: "danger" });
-            return;
-          }
+    const token = await AsyncStorage.getItem("token");
+    if (!token) {
+      showMessage({ message: "Lỗi xác thực, vui lòng đăng nhập lại.", type: "danger" });
+      return;
+    }
 
-          try {
-            const response = await handleToggle_API(targetInvoice._id, "collectionStatus");
-            showMessage({ message: "Đã xác nhận thu thành công!", type: "success" });
+    try {
+      const response = await handleToggle_API(targetInvoice._id, "collectionStatus");
 
-            // Cập nhật invoice hiện tại với trạng thái "collected" thay vì xóa nó đi
-            const currentAssigned =
-              typeof targetInvoice.assignedTo === "object" && targetInvoice.assignedTo
-                ? targetInvoice.assignedTo
-                : null;
+      // Gán người phụ trách = người bấm "Xác nhận đã thu", nhưng nếu là admin thì giữ người cũ
+      const currentAssigned =
+        typeof targetInvoice.assignedTo === "object" && targetInvoice.assignedTo
+          ? targetInvoice.assignedTo
+          : null;
 
-            const updatedInvoice = response?.data?.invoice || {
-              ...targetInvoice,
-              collectionStatus: "collected" as const,
-              collectionDate: toVietnamISOString(),
-              assignedTo: {
-                _id: user?._id || currentAssigned?._id,
-                fullName: user?.fullName || currentAssigned?.fullName,
-                collectionFee: user?.collectionFee ?? currentAssigned?.collectionFee,
-              },
+      const isAdmin = user?.role === "admin";
+      const hasExistingAssigned = !!currentAssigned?._id;
+
+      if (user?._id && !(isAdmin && hasExistingAssigned)) {
+        await updateInvoice(targetInvoice._id, { assignedTo: user._id }).catch(() => {});
+      }
+      showMessage({ message: "Đã xác nhận thu thành công!", type: "success" });
+
+      const assignedForUpdate =
+        isAdmin && hasExistingAssigned
+          ? currentAssigned
+          : {
+              _id: user?._id || currentAssigned?._id,
+              fullName: user?.fullName || currentAssigned?.fullName,
+              collectionFee: user?.collectionFee ?? currentAssigned?.collectionFee,
             };
-            setInvoice(updatedInvoice);
 
-            // Lọc bỏ hóa đơn đã thu khỏi danh sách invoiceData (thay vì chỉ cập nhật trạng thái)
-            // Điều này đảm bảo hóa đơn không còn hiển thị trong danh sách chưa thu
-            if (isSearch && setInvoiceData && invoiceData) {
-              setInvoiceData((prevList) =>
-                prevList.filter((item) => item._id !== targetInvoice._id)
-              );
-            }
+      const updatedInvoice = response?.data?.invoice || {
+        ...targetInvoice,
+        collectionStatus: "collected" as const,
+        collectionDate: toVietnamISOString(),
+        assignedTo: assignedForUpdate,
+      };
+      setInvoice(updatedInvoice);
 
-            // Cập nhật trong danh sách uncolInvoice (danh sách chưa thu)
-            setUnColInvoice((prevList) => prevList.filter((item) => item._id !== targetInvoice._id));
+      // Lọc bỏ hóa đơn đã thu khỏi danh sách invoiceData (thay vì chỉ cập nhật trạng thái)
+      if (isSearch && setInvoiceData && invoiceData) {
+        setInvoiceData((prevList) =>
+          prevList.filter((item) => item._id !== targetInvoice._id)
+        );
+      }
 
-            // Cập nhật lại top stations
-            fetchTop3StationsByRevenue();
-          } catch (error: any) {
-            console.error("Lỗi cập nhật:", error);
-            showMessage({
-              message: error?.response?.data?.message || "Không thể cập nhật trạng thái.",
-              type: "danger",
-            });
-          }
-        },
-      },
-    ]);
+      // Cập nhật trong danh sách uncolInvoice (danh sách chưa thu)
+      setUnColInvoice((prevList) => prevList.filter((item) => item._id !== targetInvoice._id));
+
+      // Cập nhật lại top stations
+      fetchTop3StationsByRevenue();
+    } catch (error: any) {
+      console.error("Lỗi cập nhật:", error);
+      showMessage({
+        message: error?.response?.data?.message || "Không thể cập nhật trạng thái.",
+        type: "danger",
+      });
+    }
   };
 
   const handleIsPaid = async (selectedInvoice?: InvoiceInfo) => {

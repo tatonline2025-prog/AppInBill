@@ -1,5 +1,5 @@
 // --- File: hooks/useUncollectedSearch.ts ---
-import { fetchAllPaidInvoices_API, fetchallInvoice, searchInvoice_API } from "@/api/invoice.api";
+import { fetchallInvoice, fetchAllPaidInvoices_API, searchInvoice_API, searchInvoiceByStationCode_API } from "@/api/invoice.api";
 import { InvoiceInfo } from "@/types/invoice";
 import { IUser } from "@/types/user";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -179,7 +179,14 @@ export const useUncollectedSearch = (user: IUser | null) => {
 
 
         if (!user) return { data: [], total: 0, totalAmount: 0 };
-        
+
+        // Khi tìm theo trạm: dùng endpoint riêng không filter status/isPaid
+        // để hiển thị đầy đủ tất cả hoá đơn của trạm và hỗ trợ load more đúng
+        if (type === "station") {
+          const stationRes = await searchInvoiceByStationCode_API(normalizedCode, pageToFetch, 50);
+          return parseSearchResponse(stationRes);
+        }
+
         const res = await searchInvoice_API(
           "not_collected",
           assignedUserId,

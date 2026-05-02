@@ -24,14 +24,40 @@ import { styles } from "@/styles/Collected.styles";
 import { InvoiceInfo } from "@/types/invoice";
 import { DEFAULT_INVOICE_LAYOUT, InvoiceLayoutItem } from "@/types/invoice-layout";
 
+// --- Helper: countdown 1h ---
+function useCollectedCountdown(collectionDate?: string | null) {
+  const [secondsLeft, setSecondsLeft] = React.useState<number | null>(null);
+  const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  React.useEffect(() => {
+    if (!collectionDate) { setSecondsLeft(null); return; }
+    const calc = () => {
+      const remaining = 3600000 - (Date.now() - new Date(collectionDate).getTime());
+      return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
+    };
+    setSecondsLeft(calc());
+    timerRef.current = setInterval(() => {
+      const r = calc();
+      setSecondsLeft(r);
+      if (r <= 0 && timerRef.current) clearInterval(timerRef.current);
+    }, 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [collectionDate]);
+  return secondsLeft;
+}
+function fmtCountdown(s: number) {
+  return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+}
+
 // --- COMPONENT CON: ITEM HÓA ĐƠN ---
 const InvoiceItem = React.memo(
   function InvoiceItem({ item, isExpanded, onToggle, onRevert, onPrint, onUpdateInfo }: any) {
     const invoiceNumberColor = item.collectionStatus === "collected" ? "#16a34a" : (item.isPaid ? "#6b7280" : "#000000");
     const invoiceNumberWeight = item.collectionStatus === "collected" || item.isPaid ? "600" : "700";
+    const secondsLeft = useCollectedCountdown(item.collectionDate);
+    const isLocking = secondsLeft !== null && secondsLeft > 0;
 
     return (
-      <View style={{ marginBottom: 8 }}>
+      <View style={{ marginBottom: 8, opacity: isLocking ? 0.65 : 1 }}>
         <TouchableOpacity
           style={{
             backgroundColor: isExpanded ? "#eff6ff" : "#fff",
@@ -49,9 +75,21 @@ const InvoiceItem = React.memo(
                 {shortenCustomerCode(item.invoiceNumber || item.customerPhone || '')} - {item.customerName}
               </Text>
               <Text style={{ color: "#475569" }}>Tiền: {Number(item.totalAmount).toLocaleString("vi-VN")} đ</Text>
-              <Text style={{ color: "#64748b", fontSize: 12 }}>
-Ngày thu: {item.collectionDate ? new Intl.DateTimeFormat('vi-VN', {timeZone: 'Asia/Ho_Chi_Minh'}).format(new Date(item.collectionDate)) : "-"}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
+                <Text style={{ color: "#64748b", fontSize: 12 }}>
+                  {item.collectionDate
+                    ? new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(item.collectionDate))
+                    : "Chưa thu"}
+                </Text>
+                {isLocking && (
+                  <Text style={{ fontSize: 10, color: "#f59e0b", fontWeight: "700" }}>
+                    🔓 {fmtCountdown(secondsLeft!)}
+                  </Text>
+                )}
+                {secondsLeft === 0 && (
+                  <Text style={{ fontSize: 10, color: "#ef4444", fontWeight: "700" }}>🔒 Khóa sửa</Text>
+                )}
+              </View>
             </View>
             <Text style={{ fontSize: 12, color: "#94a3b8" }}>{isExpanded ? "▲ Thu gọn" : "▼ Chi tiết"}</Text>
           </View>
@@ -198,32 +236,23 @@ export default function Collected() {
   const handleRevertCollected = async (item?: InvoiceInfo) => {
     const targetInvoice = item || selectedInvoice;
     if (!targetInvoice) return;
-    
-    Alert.alert("Hoàn lại trạng thái", "Bạn muốn hoàn lại hóa đơn này về chưa thu?", [
-      { text: "Hủy", style: "cancel" },
-      {
-        text: "Xác nhận",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const token = await AsyncStorage.getItem("token");
-            if (!token) return;
-            await handleToggle_API(targetInvoice._id, "collectionStatus");
-            showMessage({ message: "Đã hoàn lại trạng thái.", type: "success" });
 
-            setSelectedInvoice(null); // Reset UI ngay lập tức
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) return;
+      await handleToggle_API(targetInvoice._id, "collectionStatus");
+      showMessage({ message: "Đã hoàn lại trạng thái.", type: "success" });
 
-            if (selectedDate) {
-              searchByDate(selectedDate);
-            } else {
-              searchByText();
-            }
-          } catch {
-            showMessage({ message: "Lỗi khi hoàn trạng thái", type: "danger" });
-          }
-        },
-      },
-    ]);
+      setSelectedInvoice(null);
+
+      if (selectedDate) {
+        searchByDate(selectedDate);
+      } else {
+        searchByText();
+      }
+    } catch {
+      showMessage({ message: "Lỗi khi hoàn trạng thái", type: "danger" });
+    }
   };
 
   const handlePrintWithLatestLayout = async (item?: InvoiceInfo) => {

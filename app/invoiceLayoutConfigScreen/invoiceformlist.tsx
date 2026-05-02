@@ -1,17 +1,18 @@
-import { getInvoiceLayout, saveInvoiceLayout } from "@/api/invoicelayout.api";
+import { getInvoiceLayout, getUserLayoutLocal, saveUserLayoutLocal } from "@/api/invoicelayout.api";
 import { DynamicInvoiceLayout, DynamicNotiInvoiceLayout } from "@/components/InvoiceLayout";
 import { Text, TextInput } from "@/components/StyledText";
+import { useAuth } from "@/context/AuthContext";
 import { InvoiceLayoutItem } from "@/types/invoice-layout";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import ViewShot from "react-native-view-shot";
 
@@ -48,6 +49,7 @@ const sampleInvoice = {
 };
 
 export default function InvoiceLayoutScreen() {
+  const { user } = useAuth();
   const [forms, setForms] = useState<InvoiceLayout[]>([]);
   const [layout, setLayout] = useState<InvoiceLayoutItem[]>();
   const [loading, setLoading] = useState(true);
@@ -62,7 +64,29 @@ export default function InvoiceLayoutScreen() {
       setLoading(true);
       try {
         const data = await getInvoiceLayout();
-        if (data) setForms(data);
+        if (!data) return;
+
+        // Với mỗi form, nếu user có layout riêng trong AsyncStorage thì merge vào
+        if (user?._id) {
+          const merged = await Promise.all(
+            data.map(async (form: InvoiceLayout) => {
+              const saved = await getUserLayoutLocal(user._id, form.templateType);
+              if (saved) {
+                // Ghép: dùng cấu trúc từ backend nhưng apply label/visible từ bản lưu của user
+                const savedMap = new Map(saved.map((s) => [s.id, s]));
+                const mergedLayout = form.layout.map((item: LayoutItem) => {
+                  const userItem = savedMap.get(item.id);
+                  return userItem ? { ...item, label: userItem.label, visible: userItem.visible } : item;
+                });
+                return { ...form, layout: mergedLayout };
+              }
+              return form;
+            })
+          );
+          setForms(merged);
+        } else {
+          setForms(data);
+        }
       } catch (error) {
         console.error("Lỗi khi lấy layout:", error);
       } finally {
@@ -70,7 +94,7 @@ export default function InvoiceLayoutScreen() {
       }
     };
     fetchData();
-  }, []);
+  }, [user?._id]);
 
   const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -89,13 +113,30 @@ export default function InvoiceLayoutScreen() {
     );
   };
 
+  const toggleFieldVisible = (formId: string, fieldId: string) => {
+    setForms((prev) =>
+      prev.map((f) =>
+        f._id === formId
+          ? {
+              ...f,
+              layout: f.layout.map((l) => (l.id === fieldId ? { ...l, visible: !l.visible } : l)),
+            }
+          : f
+      )
+    );
+  };
+
   const handleSave = async (form: InvoiceLayout) => {
     try {
-      await saveInvoiceLayout(form._id, form.layout);
-      Alert.alert("Thành công", "Đã lưu layout!");
+      if (!user?._id) {
+        Alert.alert("Lỗi", "Không xác định được người dùng.");
+        return;
+      }
+      await saveUserLayoutLocal(user._id, form.templateType, form.layout);
+      Alert.alert("Thành công", "Đã lưu cấu hình form của bạn!");
     } catch (error) {
       console.error(error);
-      Alert.alert("Lỗi", "Không thể lưu layout.");
+      Alert.alert("Lỗi", "Không thể lưu cấu hình.");
     }
   };
 
@@ -113,18 +154,35 @@ export default function InvoiceLayoutScreen() {
 
         {isExpanded && (
           <ScrollView style={styles.detailContainer}>
-            {item.layout
-              .filter((f) => f.visible)
-              .map((f) => (
-                <View key={f.id} style={styles.fieldRow}>
-                  <Text style={styles.fieldLabel}>{f.id}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={f.label}
-                    onChangeText={(text) => updateLabel(item._id, f.id, text)}
-                  />
+            <Text style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>
+              * Bật/tắt để ẩn/hiện khi in. Sửa nhãn để đổi tên hiển thị.
+            </Text>
+            {item.layout.map((f) => (
+              <View key={f.id} style={[styles.fieldRow, { opacity: f.visible ? 1 : 0.45 }]}>
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+                  <TouchableOpacity
+                    onPress={() => toggleFieldVisible(item._id, f.id)}
+                    style={{
+                      width: 36, height: 20, borderRadius: 10,
+                      backgroundColor: f.visible ? "#007AFF" : "#ccc",
+                      justifyContent: "center",
+                      alignItems: f.visible ? "flex-end" : "flex-start",
+                      paddingHorizontal: 2,
+                      marginRight: 8,
+                    }}
+                  >
+                    <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: "#fff" }} />
+                  </TouchableOpacity>
+                  <Text style={[styles.fieldLabel, { flex: 1 }]}>{f.id}</Text>
                 </View>
-              ))}
+                <TextInput
+                  style={[styles.input, !f.visible && { color: "#aaa" }]}
+                  value={f.label}
+                  onChangeText={(text) => updateLabel(item._id, f.id, text)}
+                  editable={f.visible}
+                />
+              </View>
+            ))}
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
               <TouchableOpacity

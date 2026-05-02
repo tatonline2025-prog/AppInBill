@@ -2,10 +2,10 @@ import "dotenv/config";
 
 export default {
   expo: {
-    owner: "minhtran01",
+    owner: "tatcoltd",
     name: "T.A.T In Bill",
     slug: "InBillApp",
-    version: "1.3.0",
+    version: "1.6.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "inbillapp",
@@ -21,9 +21,10 @@ export default {
       },
     },
     android: {
-      versionCode: 40,
+      versionCode: 43,
       minSdkVersion: 24,
       ndkVersion: "27.1.12297006",
+      enableProguardInReleaseBuilds: true,
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
         foregroundImage: "./assets/images/android-icon-foreground.png",
@@ -87,16 +88,15 @@ export default {
     extra: {
       router: {},
       eas: {
-        projectId: "81f667c4-1484-4c1c-bd8c-72c27dda1871",
+        projectId: "5ffe6f10-9491-4e43-bbb0-7889ecb3233e",
       },
-      //appBill: "https://hoadon.dvtienich.vn",
-      appBill: "http://10.0.2.2:3000",
+      appBill: "https://hoadon.dvtienich.vn",
     },
     runtimeVersion: {
       policy: "appVersion",  
     },
     updates: {
-      url: "https://u.expo.dev/81f667c4-1484-4c1c-bd8c-72c27dda1871",
+      url: "https://u.expo.dev/5ffe6f10-9491-4e43-bbb0-7889ecb3233e",
       enabled: true,
       checkAutomatically: "ON_LOAD",
       fallbackToCacheTimeout: 0,

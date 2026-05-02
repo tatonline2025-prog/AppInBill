@@ -4,7 +4,7 @@ import { updateInvoice } from "@/api/invoice.api";
 import { Text } from "@/components/StyledText";
 import { useAuth } from "@/context/AuthContext";
 import { InvoiceInfo } from "@/types/invoice";
-import React, { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TouchableOpacity, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
 import EditModal, { EditSession, FieldType } from "./ui/EditModal";
@@ -31,14 +31,49 @@ export default function InvoiceDetail({
   const [modalVisible, setModalVisible] = useState(false);
   const [editSession, setEditSession] = useState<EditSession | null>(null);
 
+  // Countdown 1h
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (invoice.collectionStatus !== "collected" || !invoice.collectionDate) {
+      setSecondsLeft(null);
+      return;
+    }
+    const calcRemaining = () => {
+      const elapsed = Date.now() - new Date(invoice.collectionDate!).getTime();
+      const remaining = 3600000 - elapsed;
+      return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
+    };
+    setSecondsLeft(calcRemaining());
+    intervalRef.current = setInterval(() => {
+      const r = calcRemaining();
+      setSecondsLeft(r);
+      if (r <= 0 && intervalRef.current) clearInterval(intervalRef.current);
+    }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [invoice.collectionStatus, invoice.collectionDate]);
+
   const assignedId =
     typeof invoice.assignedTo === "object" ? invoice.assignedTo?._id : invoice.assignedTo;
-  const canEditInvoice = !!user && (user.role === "admin" || (!!assignedId && assignedId === user._id));
+
+  // Khóa chỉnh sửa: hóa đơn đã thu > 1 giờ thì chỉ admin mới được sửa
+  const isCollectedLocked =
+    user?.role !== "admin" &&
+    invoice.collectionStatus === "collected" &&
+    !!invoice.collectionDate &&
+    Date.now() - new Date(invoice.collectionDate).getTime() > 3600000;
+
+  const canEditInvoice = !!user && !isCollectedLocked &&
+    (user.role === "admin" || (!!assignedId && assignedId === user._id));
   const feeRaw = user?.collectionFee ?? invoice.assignedTo?.collectionFee ?? 0;
   const collectionFee = Number(feeRaw) > 0 ? Number(feeRaw) : 0;
   const totalWithFee = Number(invoice.totalAmount || 0) + collectionFee;
 
   const startEdit = (key: keyof InvoiceInfo, label: string, type: FieldType = "text") => {
+    if (isCollectedLocked) {
+      showMessage({ message: "Hóa đơn đã thu trên 1 giờ, không thể chỉnh sửa.", type: "warning" });
+      return;
+    }
     if (!canEditInvoice) {
       showMessage({ message: "Bạn chỉ được sửa hóa đơn thuộc về bạn.", type: "warning" });
       return;
@@ -67,6 +102,7 @@ export default function InvoiceDetail({
           : updatedInvoiceData.assignedTo;
 
       const formData: any = {
+        invoiceNumber: updatedInvoiceData.invoiceNumber,
         customerName: updatedInvoiceData.customerName,
         customerAddress: updatedInvoiceData.customerAddress,
         customerPhone: updatedInvoiceData.customerPhone,
@@ -199,7 +235,26 @@ export default function InvoiceDetail({
         >
           Thông tin hóa đơn
         </Text>
-        <InfoRow label="Mã KH" value={invoice.invoiceNumber} color={invoice.isPaid ? "#6b7280" : "#334155"} />
+
+        {/* Banner đếm ngược khóa sửa */}
+        {secondsLeft !== null && secondsLeft > 0 && (
+          <View style={{ backgroundColor: "#fef3c7", borderRadius: 8, padding: 8, marginBottom: 10, flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Text style={{ fontSize: 13, color: "#92400e" }}>
+              🔓 Có thể sửa trong: <Text style={{ fontWeight: "700" }}>{Math.floor(secondsLeft / 60)}:{(secondsLeft % 60).toString().padStart(2, "0")}</Text>
+            </Text>
+          </View>
+        )}
+        {secondsLeft === 0 && (
+          <View style={{ backgroundColor: "#fee2e2", borderRadius: 8, padding: 8, marginBottom: 10 }}>
+            <Text style={{ fontSize: 13, color: "#991b1b", fontWeight: "600" }}>🔒 Đã khóa chỉnh sửa (hơn 1 giờ sau khi thu)</Text>
+          </View>
+        )}
+        <InfoRow
+          label="Mã KH"
+          value={invoice.invoiceNumber}
+          color={invoice.isPaid ? "#6b7280" : "#334155"}
+          onPress={canEditInvoice ? () => startEdit("invoiceNumber", "Mã KH", "text") : undefined}
+        />
         <InfoRow
           label="Tên"
           value={invoice.customerName}
@@ -207,13 +262,35 @@ export default function InvoiceDetail({
           valueStyle={{ fontWeight: "700", fontSize: 15, color: "#334155" }}
           onPress={canEditInvoice ? () => startEdit("customerName", "Tên", "text") : undefined}
         />
-        <InfoRow label="Số điện thoại" value={invoice.customerPhone} />
+        <InfoRow
+          label="Số điện thoại"
+          value={invoice.customerPhone}
+          onPress={canEditInvoice ? () => startEdit("customerPhone", "Số điện thoại", "text") : undefined}
+        />
         <InfoRow
           label="Địa chỉ"
           value={invoice.customerAddress}
           onPress={canEditInvoice ? () => startEdit("customerAddress", "Địa chỉ", "text") : undefined}
         />
-        <InfoRow label="Kỳ" value={invoice.billing_period} />
+        <InfoRow
+          label="Kỳ"
+          value={invoice.billing_period}
+          onPress={canEditInvoice ? () => startEdit("billing_period", "Kỳ", "text") : undefined}
+        />
+        {invoice.currentAmount !== null && invoice.currentAmount !== undefined && (
+          <InfoRow
+            label="Kỳ này"
+            value={Number(invoice.currentAmount).toLocaleString("vi-VN") + " VND"}
+            onPress={canEditInvoice ? () => startEdit("currentAmount", "Kỳ này", "number") : undefined}
+          />
+        )}
+        {invoice.previousAmount !== null && invoice.previousAmount !== undefined && (
+          <InfoRow
+            label="Kỳ trước"
+            value={Number(invoice.previousAmount).toLocaleString("vi-VN") + " VND"}
+            onPress={canEditInvoice ? () => startEdit("previousAmount", "Kỳ trước", "number") : undefined}
+          />
+        )}
         
         {/* Hiển thị phí dịch vụ và tổng cộng nếu collectionFee > 0 */}
         {collectionFee > 0 && (
@@ -238,6 +315,7 @@ export default function InvoiceDetail({
           value={Number(invoice.totalAmount).toLocaleString("vi-VN") + " VND"}
           labelStyle={{ fontWeight: "700", fontSize: 15, color: "#334155" }}
           valueStyle={{ fontWeight: "700", fontSize: 15, color: invoice.isPaid ? "#6b7280" : "#334155" }}
+          onPress={canEditInvoice ? () => startEdit("totalAmount", "Tổng tiền", "number") : undefined}
         />
         <InfoRow
           label="Trạng thái thu"

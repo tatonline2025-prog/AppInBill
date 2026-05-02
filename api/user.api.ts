@@ -4,6 +4,30 @@ import Constants from "expo-constants";
 
 const BASE_URL = Constants.expoConfig?.extra?.appBill;
 
+export const changePassword = async (oldPassword: string, newPassword: string) => {
+  if (!BASE_URL) throw new Error("BASE_URL chưa được cấu hình");
+  const token = await AsyncStorage.getItem("token");
+  if (!token) throw new Error("Không tìm thấy token người dùng");
+
+  try {
+    const res = await axios.put(
+      `${BASE_URL}/api/user/change-password`,
+      { oldPassword, newPassword },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return res;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const serverMessage = error.response?.data?.message;
+      if (status === 401) throw new Error("Mật khẩu cũ không đúng");
+      if (status === 400) throw new Error(serverMessage || "Dữ liệu không hợp lệ");
+      throw new Error(serverMessage || "Không thể đổi mật khẩu");
+    }
+    throw new Error("Không thể kết nối mạng khi đổi mật khẩu");
+  }
+};
+
 export const updateCollectionFee = async (userId: string, fee: number) => {
   if (!BASE_URL) {
     throw new Error("BASE_URL chua duoc cau hinh trong extra");

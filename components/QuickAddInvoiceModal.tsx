@@ -1,16 +1,16 @@
 ﻿import { quickAddInvoice } from "@/api/invoice.api";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { showMessage } from "react-native-flash-message";
 
@@ -79,7 +79,11 @@ export default function QuickAddInvoiceModal({
       return;
     }
 
-    if (!totalAmount.trim() || isNaN(Number(totalAmount)) || Number(totalAmount) < 0) {
+    // Chấp nhận "150.000", "150,000", "150000" → 150000
+    const cleanedAmount = totalAmount.replace(/[.\s]/g, "").replace(",", "");
+    const parsedAmount = parseInt(cleanedAmount, 10);
+
+    if (!totalAmount.trim() || isNaN(parsedAmount) || parsedAmount < 0) {
       showMessage({
         message: "Vui lòng nhập tổng tiền hợp lệ",
         type: "danger",
@@ -92,7 +96,7 @@ export default function QuickAddInvoiceModal({
       await quickAddInvoice({
         invoiceNumber: trimmedNumber,
         customerName: customerName.trim(),
-        totalAmount: Number(totalAmount),
+        totalAmount: parsedAmount,
       });
       
       showMessage({

@@ -1,9 +1,42 @@
 ﻿import { Text } from "@/components/StyledText";
 import { InvoiceInfo } from "@/types/invoice";
 import { Ionicons } from "@expo/vector-icons";
-import React, { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, LayoutAnimation, TouchableOpacity, View } from "react-native";
 import InvoiceDetail from "./InvoiceDetail";
+
+// Hook đếm ngược thời gian còn lại đến 1h sau khi collected
+function useCollectedCountdown(invoice: InvoiceInfo) {
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (invoice.collectionStatus !== "collected" || !invoice.collectionDate) {
+      setSecondsLeft(null);
+      return;
+    }
+    const calcRemaining = () => {
+      const elapsed = Date.now() - new Date(invoice.collectionDate!).getTime();
+      const remaining = 3600000 - elapsed; // 1h = 3600000ms
+      return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
+    };
+    setSecondsLeft(calcRemaining());
+    intervalRef.current = setInterval(() => {
+      const r = calcRemaining();
+      setSecondsLeft(r);
+      if (r <= 0 && intervalRef.current) clearInterval(intervalRef.current);
+    }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [invoice.collectionStatus, invoice.collectionDate]);
+
+  return secondsLeft;
+}
+
+function formatCountdown(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 type InvoiceListProps = {
   title: string;
@@ -69,8 +102,14 @@ const InvoiceItem = memo(
     // Rút gọn mã khách hàng khi không mở rộng
     const displayInvoiceNumber = isExpanded ? item.invoiceNumber : shortenInvoiceNumber(item.invoiceNumber);
 
+    const secondsLeft = useCollectedCountdown(item);
+    // isLocking = đã collected nhưng chưa hết 1h (đang trong giai đoạn có thể sửa nhưng mờ)
+    const isLocking = secondsLeft !== null && secondsLeft > 0;
+    // isLocked = đã hết 1h -> khóa hẳn
+    const isLocked = secondsLeft === 0;
+
     return (
-      <View style={{ marginBottom: 8 }}>
+      <View style={{ marginBottom: 8, opacity: isLocking ? 0.65 : 1 }}>
         <TouchableOpacity
           style={{
             backgroundColor: isExpanded ? "#eff6ff" : "#fff",
@@ -95,6 +134,17 @@ const InvoiceItem = memo(
               >
                 {displayInvoiceNumber} - {Number(item.totalAmount).toLocaleString("vi-VN")}
               </Text>
+              {/* Countdown timer nhỏ khi đang trong giai đoạn 1h */}
+              {isLocking && (
+                <Text style={{ fontSize: 10, color: "#f59e0b", fontWeight: "600" }}>
+                  🔓 Khóa sau: {formatCountdown(secondsLeft!)}
+                </Text>
+              )}
+              {isLocked && (
+                <Text style={{ fontSize: 10, color: "#ef4444", fontWeight: "600" }}>
+                  🔒 Đã khóa sửa
+                </Text>
+              )}
               <Text style={{ color: "#475569" }} numberOfLines={1} ellipsizeMode="tail">
                 Trạm: {item.recordBookCode || 'N/A'} - {item.customerName}
               </Text>

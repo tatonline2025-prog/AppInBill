@@ -3,7 +3,7 @@ import { login } from "@/api/auth.api";
 import { Text, TextInput } from "@/components/StyledText";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
 
@@ -109,157 +109,167 @@ const [rememberMe, setRememberMe] = useState(false);
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#f9fafb" }}
+      style={{ flex: 1, backgroundColor: "#0f172a" }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* ... code giao diện cũ ... */}
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
           justifyContent: "center",
           alignItems: "center",
-          padding: 20,
+          padding: 24,
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text
-          style={{
-            fontSize: 26,
-            fontWeight: "700",
-            color: "#1e293b",
-            marginBottom: 10,
-            textAlign: "center",
-          }}
-        >
-          Hệ Thống Thu Hoá Đơn TAT
-        </Text>
-
-        <Text
-          style={{
-            fontSize: 20,
-            color: "#64748b",
-            marginBottom: 30,
-            textAlign: "center",
-          }}
-        >
-          Đăng nhập
-        </Text>
-
-        <TextInput
-          placeholder="Tên đăng nhập"
-          placeholderTextColor="#94a3b8"
-          style={{
-            width: "100%",
-            backgroundColor: "#fff",
-            borderWidth: 1,
-            borderColor: "#e2e8f0",
-            padding: 12,
-            borderRadius: 10,
-            marginBottom: 15,
-            fontSize: 16,
-            color: "#000",
-          }}
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-        />
-
-        <View style={{ flexDirection: "row", alignItems: "center", width: "100%", marginBottom: 25, backgroundColor: "#fff", borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 10 }}>
-          <TextInput
-            placeholder="Mật khẩu"
-            placeholderTextColor="#94a3b8"
-            style={{
-              flex: 1,
-              padding: 12,
-              paddingRight: 12,
-              fontSize: 16,
-              color: "#000",
-            }}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-          />
-          <TouchableOpacity
-            onPress={() => setShowPassword(!showPassword)}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 12,
-              minHeight: 48,
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-            activeOpacity={0.7}
-          >
-            <Ionicons 
-              name={showPassword ? "eye-off" : "eye"} 
-              size={20} 
-              color="#64748b" 
-            />
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          onPress={toggleRememberMe}
-          style={{
-            flexDirection: "row",
-            alignSelf: "flex-start", // Đặt ở bên trái
-            alignItems: "center",
-            marginBottom: 25,
-          }}
-        >
-          {/* Checkbox giả bằng View/Text */}
+        {/* Logo / Title block */}
+        <View style={{ alignItems: "center", marginBottom: 40 }}>
           <View
             style={{
-              width: 20,
-              height: 20,
-              borderRadius: 5,
-              borderWidth: 2,
-              borderColor: "#2563eb",
-              backgroundColor: rememberMe ? "#2563eb" : "#fff",
+              width: 72,
+              height: 72,
+              borderRadius: 20,
+              backgroundColor: "#2563eb",
               justifyContent: "center",
               alignItems: "center",
-              marginRight: 10,
+              marginBottom: 16,
+              shadowColor: "#2563eb",
+              shadowOpacity: 0.5,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 8,
             }}
           >
-            {rememberMe && (
-              <Text
-                style={{
-                  color: "#fff",
-                  fontSize: 14,
-                  fontWeight: "bold",
-                }}
-              >
-                ✓
-              </Text>
-            )}
+            <Ionicons name="document-text" size={36} color="#fff" />
           </View>
-          <Text style={{ fontSize: 16, color: "#64748b" }}>Ghi nhớ người dùng</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={handleLogin}
-          style={{
-            width: "100%",
-            backgroundColor: "#2563eb",
-            paddingVertical: 14,
-            borderRadius: 10,
-            shadowColor: "#000",
-            shadowOpacity: 0.2,
-            shadowRadius: 3,
-            shadowOffset: { width: 0, height: 2 },
-          }}
-        >
           <Text
             style={{
-              textAlign: "center",
-              color: "#fff",
-              fontWeight: "600",
-              fontSize: 18,
+              fontSize: 28,
+              fontWeight: "800",
+              color: "#ffffff",
+              letterSpacing: 0.5,
             }}
           >
-            Đăng nhập
+            Hóa Đơn TAT
           </Text>
-        </TouchableOpacity>
+          <Text style={{ fontSize: 14, color: "#94a3b8", marginTop: 4 }}>
+            Đăng nhập để tiếp tục
+          </Text>
+        </View>
+
+        {/* Input card */}
+        <View
+          style={{
+            width: "100%",
+            backgroundColor: "#1e293b",
+            borderRadius: 16,
+            padding: 20,
+            gap: 14,
+          }}
+        >
+          {/* Username */}
+          <View>
+            <Text style={{ color: "#94a3b8", fontSize: 13, marginBottom: 6, fontWeight: "600" }}>
+              Tên đăng nhập
+            </Text>
+            <TextInput
+              placeholder="Nhập tên đăng nhập"
+              placeholderTextColor="#475569"
+              style={{
+                backgroundColor: "#0f172a",
+                borderWidth: 1,
+                borderColor: "#334155",
+                padding: 13,
+                borderRadius: 10,
+                fontSize: 15,
+                color: "#f1f5f9",
+              }}
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+            />
+          </View>
+
+          {/* Password */}
+          <View>
+            <Text style={{ color: "#94a3b8", fontSize: 13, marginBottom: 6, fontWeight: "600" }}>
+              Mật khẩu
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#0f172a",
+                borderWidth: 1,
+                borderColor: "#334155",
+                borderRadius: 10,
+              }}
+            >
+              <TextInput
+                placeholder="Nhập mật khẩu"
+                placeholderTextColor="#475569"
+                style={{
+                  flex: 1,
+                  padding: 13,
+                  fontSize: 15,
+                  color: "#f1f5f9",
+                }}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={{ paddingHorizontal: 14, paddingVertical: 13 }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Remember me */}
+          <TouchableOpacity
+            onPress={toggleRememberMe}
+            style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+          >
+            <View
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 5,
+                borderWidth: 2,
+                borderColor: "#2563eb",
+                backgroundColor: rememberMe ? "#2563eb" : "transparent",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              {rememberMe && <Ionicons name="checkmark" size={13} color="#fff" />}
+            </View>
+            <Text style={{ fontSize: 14, color: "#94a3b8" }}>Ghi nhớ người dùng</Text>
+          </TouchableOpacity>
+
+          {/* Login button */}
+          <TouchableOpacity
+            onPress={handleLogin}
+            style={{
+              backgroundColor: "#2563eb",
+              paddingVertical: 14,
+              borderRadius: 10,
+              alignItems: "center",
+              marginTop: 4,
+              shadowColor: "#2563eb",
+              shadowOpacity: 0.4,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 3 },
+              elevation: 4,
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
+              Đăng nhập
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

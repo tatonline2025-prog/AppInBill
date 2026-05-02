@@ -10,6 +10,33 @@ if (!BASE_URL) {
   throw new Error("BASE_URL chưa được cấu hình trong extra");
 }
 
+// ===== PER-USER LOCAL LAYOUT (AsyncStorage) =====
+const getUserLayoutKey = (userId: string, templateType: string) =>
+  `userLayout_${userId}_${templateType}`;
+
+export const saveUserLayoutLocal = async (
+  userId: string,
+  templateType: string,
+  layout: InvoiceLayoutItem[]
+) => {
+  const key = getUserLayoutKey(userId, templateType);
+  await AsyncStorage.setItem(key, JSON.stringify(layout));
+};
+
+export const getUserLayoutLocal = async (
+  userId: string,
+  templateType: string
+): Promise<InvoiceLayoutItem[] | null> => {
+  const key = getUserLayoutKey(userId, templateType);
+  const stored = await AsyncStorage.getItem(key);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored) as InvoiceLayoutItem[];
+  } catch {
+    return null;
+  }
+};
+
 export const saveInvoiceLayout = async (layoutID: string, layout: InvoiceLayoutItem[]) => {
   try {
     const token = await AsyncStorage.getItem("token");
