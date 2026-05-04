@@ -1,12 +1,13 @@
 import {
-  isBluetoothEnabled,
-  requestBluetoothPermissions,
+    isBluetoothEnabled,
+    requestBluetoothPermissions,
 } from "@/components/BluetoothPermission";
 import { InvoiceInfo } from "@/types/invoice";
 import { generateBillImage } from "@/utils/generateBillImage";
+import { PRINTER_STORAGE_KEY } from "@/utils/printer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Platform } from "react-native";
+import { Alert } from "react-native";
 import { showMessage } from "react-native-flash-message";
 import { BLEPrinter } from "react-native-thermal-receipt-printer-image-qr";
 import ViewShot from "react-native-view-shot";
@@ -14,13 +15,12 @@ import ViewShot from "react-native-view-shot";
 interface PrinterDevice {
   name: string;
   address: string;
+  paperWidthPx?: number; // 384 = 58mm, 576 = 80mm (default: 384)
 }
 
-const SCAN_TIMEOUT = 5000;
 const IMAGE_GENERATION_TIMEOUT = 12000;
 const PRINT_TIMEOUT = 15000;
 const READY_CACHE_TTL = 30000;
-const SCAN_WATCHDOG_TIMEOUT = 12000;
 
 const isBlePrinterModuleAvailable = () => {
   return !!(
@@ -36,9 +36,6 @@ export const useInvoicePrinter = (
   viewShotRef: React.RefObject<ViewShot | null>,
   invoice: InvoiceInfo | null
 ) => {
-  const [showPrinterManager, setShowPrinterManager] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [availablePrinters, setAvailablePrinters] = useState<PrinterDevice[]>([]);
   const [currentInvoice, setCurrentInvoice] = useState<InvoiceInfo | null>(invoice || null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isLayoutVisible, setIsLayoutVisible] = useState(false);
@@ -50,15 +47,6 @@ export const useInvoicePrinter = (
   const readyStateRef = useRef<{ isReady: boolean; checkedAt: number }>({
     isReady: false,
     checkedAt: 0,
-  });
-  const lastPrinterAddressRef = useRef<string | null>(null);
-  const scanWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // AsyncStorage keys - platform specific for web compat
-  const PRINTER_STORAGE_KEY = Platform.select({
-    ios: 'lastPrinter_iOS',
-    android: 'lastPrinter_Android',
-    default: 'lastPrinter',
   });
 
   useEffect(() => {
@@ -147,104 +135,10 @@ export const useInvoicePrinter = (
     return true;
   };
 
-  const startScan = async (options?: { skipReadyCheck?: boolean }) => {
-    const skipReadyCheck = options?.skipReadyCheck ?? false;
-
-    if (!isBlePrinterModuleAvailable()) {
-      Alert.alert(
-        "Unsupported runtime",
-        "Bluetooth printing requires a Development Build or production build. Expo Go is not supported."
-      );
-      return;
-    }
-
-    if (scanWatchdogRef.current) {
-      clearTimeout(scanWatchdogRef.current);
-      scanWatchdogRef.current = null;
-    }
-
-    setAvailablePrinters([]);
-    setIsScanning(true);
-    scanWatchdogRef.current = setTimeout(() => {
-      if (isMountedRef.current) {
-        setIsScanning(false);
-        Alert.alert("Scan timeout", "Scanning is taking too long. Please tap Scan again.");
-      }
-    }, SCAN_WATCHDOG_TIMEOUT);
-
-    try {
-      if (!skipReadyCheck) {
-        const ready = await ensureBluetoothReady();
-        if (!ready) return;
-      }
-
-      try {
-        await BLEPrinter.init();
-      } catch {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        await BLEPrinter.init();
-      }
-
-      const devices: any = await withTimeout(
-        BLEPrinter.getDeviceList(),
-        SCAN_TIMEOUT,
-        "Printer scan timeout. Please try again."
-      );
-
-      if (!isMountedRef.current) return;
-
-      if (!devices || devices.length === 0) {
-        Alert.alert(
-          "No paired printer",
-          "Please pair your Bluetooth printer in system settings first, then tap Scan again."
-        );
-        return;
-      }
-
-      const mappedDevices: PrinterDevice[] = devices
-        .map((d: any) => ({
-          name: d.device_name || d.name || "Unknown printer",
-          address: d.inner_mac_address || d.macAddress || d.address,
-        }))
-        .filter((d: PrinterDevice) => d.address);
-
-      const lastAddress = lastPrinterAddressRef.current;
-      const sortedDevices = [...mappedDevices].sort((a, b) => {
-        if (a.address === lastAddress) return -1;
-        if (b.address === lastAddress) return 1;
-        return a.name.localeCompare(b.name);
-      });
-
-      setAvailablePrinters(sortedDevices);
-    } catch (err: any) {
-      if (!isMountedRef.current) return;
-
-      const errorMessage = err?.message || "Cannot scan printers. Please try again.";
-      const lowered = String(errorMessage).toLowerCase();
-
-      if (lowered.includes("timeout")) {
-        Alert.alert("Scan timeout", "Scanning took too long. Please try again.");
-      } else if (lowered.includes("permission")) {
-        Alert.alert("Permission required", "Please allow Bluetooth permission and retry.");
-      } else {
-        Alert.alert("Scan error", errorMessage);
-      }
-    } finally {
-      if (scanWatchdogRef.current) {
-        clearTimeout(scanWatchdogRef.current);
-        scanWatchdogRef.current = null;
-      }
-      if (isMountedRef.current) {
-        setIsScanning(false);
-      }
-    }
-  };
-
-  const printImage = (base64Image: string): Promise<void> => {
+  const printImage = (base64Image: string, imageWidth: number): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
-        const result = (BLEPrinter as any).printImageBase64(base64Image, { imageWidth: 384 });
-
+        const result = (BLEPrinter as any).printImageBase64(base64Image, { imageWidth });
         if (result && typeof result.then === "function") {
           result.then(resolve).catch(reject);
         } else {
@@ -280,10 +174,12 @@ export const useInvoicePrinter = (
       isConnected = true;
       await new Promise((resolve) => setTimeout(resolve, 650));
 
-      // 🔧 FIX: Make layout visible + wait render before capture
+      const imageWidth = printer.paperWidthPx ?? 384;
+
+      // Make layout visible + wait for render before capture
       setIsLayoutVisible(true);
-      await new Promise((resolve) => setTimeout(resolve, 1200)); // Layout render + fonts load
-      await new Promise((resolve) => setTimeout(resolve, 0)); // next tick
+      await new Promise((resolve) => setTimeout(resolve, 1200)); // layout render + fonts
+      await new Promise((resolve) => setTimeout(resolve, 0));    // next tick
 
       const base64Image = await withTimeout(
         generateBillImage(viewShotRef),
@@ -300,11 +196,11 @@ export const useInvoicePrinter = (
       console.log("[PRINT] Captured success, base64 length:", base64Image.length);
 
       try {
-        await withTimeout(printImage(base64Image), PRINT_TIMEOUT, "Print timeout.");
+        await withTimeout(printImage(base64Image, imageWidth), PRINT_TIMEOUT, "Print timeout.");
         isPrintedSuccessfully = true;
       } catch {
         await new Promise((resolve) => setTimeout(resolve, 700));
-        await withTimeout(printImage(base64Image), PRINT_TIMEOUT, "Retry print timeout.");
+        await withTimeout(printImage(base64Image, imageWidth), PRINT_TIMEOUT, "Retry print timeout.");
         isPrintedSuccessfully = true;
       }
 
@@ -322,7 +218,7 @@ export const useInvoicePrinter = (
         Alert.alert("Print error", "Printing took too long. Please check printer and retry.");
       } else if (lowered.includes("connection") || lowered.includes("connect")) {
         Alert.alert("Connection error", "Cannot connect to printer. Please make sure printer is on.");
-      } else if (lowered.includes("image")) {
+      } else if (lowered.includes("image") || lowered.includes("capture")) {
         Alert.alert("Image error", errorMsg);
       } else {
         Alert.alert("Print error", errorMsg);
@@ -339,51 +235,11 @@ export const useInvoicePrinter = (
       }
 
       setIsPrinting(false);
-      setShowPrinterManager(!isPrintedSuccessfully);
     }
   };
 
   const updateInvoice = (newInvoice: InvoiceInfo | null) => {
     setCurrentInvoice(newInvoice);
-  };
-
-  const tryAutoPrint = async (targetPrinter: PrinterDevice, targetInvoice: InvoiceInfo) => {
-    try {
-      showMessage({ 
-        message: `Đang in tự động: ${targetPrinter.name}`, 
-        type: "info" 
-      });
-
-      // Quick BT check
-      const btReady = await ensureBluetoothReady(true);
-      if (!btReady) {
-        throw new Error('BT not ready');
-      }
-
-      // Quick scan to validate printer still available
-      await BLEPrinter.init();
-      const devices: any = await withTimeout(BLEPrinter.getDeviceList(), SCAN_TIMEOUT * 0.8, "Quick scan timeout");
-      if (!devices?.length) {
-        throw new Error('No printers found');
-      }
-
-      const available = devices.map((d: any) => ({
-        name: d.device_name || d.name || "Unknown",
-        address: d.inner_mac_address || d.macAddress || d.address,
-      })).filter((d: PrinterDevice) => d.address) as PrinterDevice[];
-
-      const foundPrinter = available.find(p => p.address === targetPrinter.address);
-      if (!foundPrinter) {
-        throw new Error('Saved printer not available');
-      }
-
-      // Auto connect/print
-      await connectAndPrint(foundPrinter, targetInvoice);
-      return true;
-    } catch (err) {
-      console.log('[AUTO PRINT] Fallback to manual:', err);
-      return false;
-    }
   };
 
   const handlePrintInvoice = async (invoiceToPrint?: InvoiceInfo | null) => {
@@ -395,51 +251,33 @@ export const useInvoicePrinter = (
       return;
     }
 
-    if (isStartingRef.current || isScanning || isPrinting) {
-      return;
-    }
+    if (isStartingRef.current || isPrinting) return;
 
     const targetInvoice = invoiceToPrint || currentInvoice;
     if (!targetInvoice) {
-      Alert.alert("No invoice", "Please select an invoice before printing.");
+      Alert.alert("Không có hóa đơn", "Chọn hóa đơn trước khi in.");
       return;
     }
 
     isStartingRef.current = true;
-
     try {
       setCurrentInvoice(targetInvoice);
 
-      // Try auto-print if saved printer exists (reload in case another hook just saved)
-      let printerToUse = savedPrinterRef.current || savedPrinter;
-      if (!printerToUse) {
-        printerToUse = await loadSavedPrinter();
+      // Load saved printer config (set in tab Tài khoản)
+      let printer = savedPrinterRef.current || savedPrinter;
+      if (!printer) printer = await loadSavedPrinter();
+
+      if (!printer) {
+        Alert.alert(
+          "Chưa cấu hình máy in",
+          "Vào tab Tài khoản → Máy in để chọn và test in máy in trước."
+        );
+        return;
       }
 
-      if (printerToUse) {
-        const autoSuccess = await tryAutoPrint(printerToUse, targetInvoice);
-        if (autoSuccess) {
-          isStartingRef.current = false;
-          return; // Success - exit early
-        }
-        // Fallback: show message and continue to manual
-        showMessage({ 
-          message: "Không tìm máy in lưu, chọn thủ công...", 
-          type: "warning" 
-        });
-      } else {
-        showMessage({ message: "Lần đầu in, chọn máy in...", type: "info" });
-      }
-
-      // Manual flow
-      setShowPrinterManager(true);
-      setTimeout(() => {
-        if (isMountedRef.current) {
-          startScan({ skipReadyCheck: false });
-        }
-      }, 120);
-    } catch (err) {
-      Alert.alert("Error", "Unexpected error while starting print flow.");
+      await connectAndPrint(printer, targetInvoice);
+    } catch {
+      Alert.alert("Lỗi", "Có lỗi không mong đợi khi bắt đầu in.");
     } finally {
       isStartingRef.current = false;
     }
@@ -451,22 +289,19 @@ export const useInvoicePrinter = (
     currentInvoice,
     isPrinting,
     isLayoutVisible,
-      printerModalProps: {
-        visible: showPrinterManager,
-        printers: availablePrinters,
-        isScanning,
-        isPrinting,
-        isLayoutVisible,
-        savedPrinter,  // Pass saved for UI hint
-        currentInvoice,
-        onClose: () => {
-          if (!isPrinting) {
-            setShowPrinterManager(false);
-            isStartingRef.current = false;
-          }
-        },
-        onScan: startScan,
-        onSelectPrinter: connectAndPrint,
-      },
+    paperWidthPx: savedPrinterRef.current?.paperWidthPx ?? 384,
+    // printerModalProps kept for backward-compat (visible always false — printer config moved to account tab)
+    printerModalProps: {
+      visible: false as const,
+      printers: [] as PrinterDevice[],
+      isScanning: false,
+      isPrinting,
+      isLayoutVisible,
+      savedPrinter,
+      currentInvoice,
+      onClose: () => {},
+      onScan: () => {},
+      onSelectPrinter: connectAndPrint,
+    },
   };
 };

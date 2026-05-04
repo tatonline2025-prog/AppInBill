@@ -146,7 +146,7 @@ export const useCollectedManager = (user: IUser | null) => {
       setInvoiceData([]);
     }
 
-    const pageToFetch = isLoadMore ? currentPage + 1 : 1;
+    const pageToFetch = 1;
 
     try {
       const res = await searchInvoice_API(
@@ -156,7 +156,7 @@ export const useCollectedManager = (user: IUser | null) => {
         normalizedCode,
         searchType,
         pageToFetch,
-        50
+        500
       );
 
       const parsed = parseSearchResponse(res);
@@ -172,11 +172,9 @@ export const useCollectedManager = (user: IUser | null) => {
       const totalInvoicesValue =
         searchType === "station" && activeDate ? filteredData.length : (parsed.total || filteredData.length);
 
-      if (isLoadMore) {
-        setInvoiceData((prev) => [...prev, ...filteredData]);
-      } else {
-        setInvoiceData(filteredData);
+      setInvoiceData(filteredData);
 
+      if (true) {
         if (filteredData.length === 0) {
           if (searchType === "station") {
             const stationCode = code.trim().toUpperCase();
@@ -212,8 +210,8 @@ export const useCollectedManager = (user: IUser | null) => {
         }
       }
 
-      setCurrentPage(pageToFetch);
-      setTotalPages(totalPagesServer);
+      setCurrentPage(1);
+      setTotalPages(1);
       setTotalAmount(amount);
       setTotalInvoices(totalInvoicesValue);
     } catch (error) {
@@ -248,39 +246,29 @@ export const useCollectedManager = (user: IUser | null) => {
       setSelectedInvoice(null);
     }
 
-    // Nếu không phải load more (tức là chọn ngày mới), luôn gọi trang 1.
-    // Nếu là load more, gọi trang tiếp theo.
-    const pageToFetch = isLoadMore ? currentPage + 1 : 1;
-    // Cập nhật selectedDate để UI hiển thị đúng
+    // Luôn lấy tất cả (không phân trang)
     setSelectedDate(date);
 
     try {
       const dateString = new Intl.DateTimeFormat('en-CA', {timeZone: 'Asia/Ho_Chi_Minh'}).format(date); // YYYY-MM-DD
 
-      // Gọi API với page và limit
-      const res = await searchInvoiceByDate_API(user._id, user.province, dateString, pageToFetch, 50);
+      const res = await searchInvoiceByDate_API(user._id, user.province, dateString, 1, 500);
 
-      // API trả về cấu trúc mới: { data, totalPages, currentPage, ... }
       const newData = res.data || [];
-      const totalPagesServer = res.totalPages || 1;
       const amount = res.totalAmount || 0;
 
-      if (isLoadMore) {
-        setInvoiceData((prev) => [...prev, ...newData]);
+      setInvoiceData(newData);
+      if (newData.length > 0) {
+        showMessage({
+          message: `Tìm thấy ${res.total || newData.length} hóa đơn`,
+          type: "success",
+        });
       } else {
-        setInvoiceData(newData);
-        if (newData.length > 0) {
-          showMessage({
-            message: `Tìm thấy ${res.total || newData.length} hóa đơn`,
-            type: "success",
-          });
-        } else {
-          showMessage({ message: "Không có hóa đơn nào trong ngày này.", type: "warning" });
-        }
+        showMessage({ message: "Không có hóa đơn nào trong ngày này.", type: "warning" });
       }
 
-      setCurrentPage(pageToFetch);
-      setTotalPages(totalPagesServer);
+      setCurrentPage(1);
+      setTotalPages(1);
       setTotalAmount(amount);
       setTotalInvoices(res.total);
     } catch (error) {

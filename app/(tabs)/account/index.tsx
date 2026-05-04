@@ -5,6 +5,7 @@ import { Text } from "@/components/StyledText";
 import { useAuth } from "@/context/AuthContext";
 import { useFont } from "@/context/FontContext";
 import { useInvoices } from "@/context/InvoiceContext";
+import { usePrinterSettings } from "@/hooks/usePrinterSettings";
 import { InvoiceLayoutItem } from "@/types/invoice-layout";
 import { toVietnamISOString } from "@/utils/vnTimezone";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -12,9 +13,10 @@ import Slider from "@react-native-community/slider";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
 import { GestureHandlerRootView, TextInput } from "react-native-gesture-handler";
+import ViewShot from "react-native-view-shot";
 
 const sampleInvoice = {
   invoiceNumber: "PA25001234567", // Mã KH
@@ -85,7 +87,10 @@ export default function ProfileScreen() {
 
   const version = Constants.expoConfig?.version || "1.0.0";
 
-  const viewShotRef = useRef(null);
+  const viewShotRef = useRef<ViewShot>(null);
+
+  // --- PRINTER SETTINGS ---
+  const printerSettings = usePrinterSettings(viewShotRef);
 
   // --- STATE QUẢN LÝ VIỆC THAY ĐỔI SIZE CHỮ ---
   const { scale, changeScale } = useFont();
@@ -177,7 +182,7 @@ export default function ProfileScreen() {
         <View style={styles.card}>
           <View style={[styles.infoRow, { marginBottom: -3 }]}>
             <Text>Phiên bản ứng dụng:</Text>
-            <Text>{version} - 02/05/2026</Text>
+            <Text>{version} - 04/05/2026</Text>
 
           </View>
         </View>
@@ -216,51 +221,172 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <View style={styles.container}>
-            {/* --- KHU VỰC ĐIỀU KHIỂN SLIDER (Thay thế nút bấm cũ) --- */}
-            <View style={styles.controlContainer}>
-              <Text style={styles.label}>Điều chỉnh cỡ chữ: x{scale.toFixed(1)}</Text>
+        </View>
 
-              <View style={styles.sliderRow}>
-                {/* Icon chữ nhỏ bên trái */}
-                <Text style={{ fontSize: 14, fontWeight: "bold" }}>A</Text>
+        {/* Printer Settings Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>🖨️ Máy in</Text>
 
-                <Slider
-                  style={{ flex: 1, height: 40, marginHorizontal: 10 }}
-                  minimumValue={0.5} // Nhỏ nhất
-                  maximumValue={2.0} // Lớn nhất
-                  step={0.1} // Mỗi lần kéo nhảy 0.1 (1.1 -> 1.2)
-                  value={scale} // Giá trị hiện tại lấy từ Context
-                  onValueChange={(val: any) => {
-                    // Làm tròn số để tránh bị số lẻ kiểu 1.20000001
-                    const roundedVal = parseFloat(val.toFixed(1));
-                    changeScale(roundedVal);
-                  }}
-                  minimumTrackTintColor="#2ecc71" // Màu thanh đã kéo (Xanh lá)
-                  maximumTrackTintColor="#000000" // Màu thanh chưa kéo (Đen)
-                  thumbTintColor="#2ecc71" // Màu nút tròn để kéo
-                />
-
-                {/* Icon chữ lớn bên phải */}
-                <Text style={{ fontSize: 24, fontWeight: "bold" }}>A</Text>
+          {/* Status */}
+          <View style={[styles.infoRow, { marginBottom: 12 }]}>
+            <Text style={styles.infoLabel}>Trạng thái:</Text>
+            {printerSettings.savedPrinter ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <View style={styles.statusDotGreen} />
+                <Text style={[styles.infoValue, { color: "#16a34a" }]}>
+                  {printerSettings.savedPrinter.name}
+                </Text>
               </View>
+            ) : (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <View style={styles.statusDotRed} />
+                <Text style={{ color: "#dc2626", fontWeight: "500" }}>Chưa cấu hình</Text>
+              </View>
+            )}
+          </View>
+
+          {printerSettings.savedPrinter && (
+            <View style={[styles.infoRow, { marginBottom: 12 }]}>
+              <Text style={styles.infoLabel}>Khổ giấy:</Text>
+              <Text style={styles.infoValue}>
+                {printerSettings.savedPrinter.paperWidthPx === 576 ? "80mm" : "58mm"}
+              </Text>
+            </View>
+          )}
+
+          {/* Scan button */}
+          <TouchableOpacity
+            style={[styles.printerBtn, printerSettings.isScanning && styles.printerBtnDisabled]}
+            onPress={printerSettings.scan}
+            disabled={printerSettings.isScanning || printerSettings.isTesting}
+          >
+            {printerSettings.isScanning ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <MaterialIcons name="bluetooth-searching" size={18} color="#fff" />
+            )}
+            <Text style={styles.printerBtnText}>
+              {printerSettings.isScanning ? "Đang quét..." : "Quét máy in Bluetooth"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Printer list */}
+          {printerSettings.availablePrinters.length > 0 && (
+            <View style={styles.printerList}>
+              <Text style={[styles.infoLabel, { marginBottom: 6 }]}>Chọn máy in:</Text>
+              {printerSettings.availablePrinters.map((p) => {
+                const isSelected = printerSettings.selectedPrinter?.address === p.address;
+                return (
+                  <TouchableOpacity
+                    key={p.address}
+                    style={[styles.printerItem, isSelected && styles.printerItemSelected]}
+                    onPress={() => printerSettings.selectPrinter(p)}
+                  >
+                    <MaterialIcons
+                      name={isSelected ? "radio-button-checked" : "radio-button-unchecked"}
+                      size={18}
+                      color={isSelected ? "#2563eb" : "#9ca3af"}
+                    />
+                    <View style={{ marginLeft: 8, flex: 1 }}>
+                      <Text style={{ fontWeight: isSelected ? "700" : "400", color: "#111" }}>{p.name}</Text>
+                      <Text style={{ fontSize: 11, color: "#6b7280" }}>{p.address}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Paper width toggle */}
+          <View style={styles.paperWidthRow}>
+            <Text style={[styles.infoLabel, { marginBottom: 0, marginRight: 8 }]}>Khổ giấy:</Text>
+            <TouchableOpacity
+              style={[styles.widthBtn, printerSettings.selectedWidthPx === 384 && styles.widthBtnActive]}
+              onPress={() => printerSettings.setSelectedWidthPx(384)}
+            >
+              <Text style={[styles.widthBtnText, printerSettings.selectedWidthPx === 384 && styles.widthBtnTextActive]}>
+                PT · 58mm
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.widthBtn, printerSettings.selectedWidthPx === 576 && styles.widthBtnActive]}
+              onPress={() => printerSettings.setSelectedWidthPx(576)}
+            >
+              <Text style={[styles.widthBtnText, printerSettings.selectedWidthPx === 576 && styles.widthBtnTextActive]}>
+                Bixolon · 80mm
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Điều chỉnh cỡ chữ - dùng chung với xem trước */}
+          <View style={[styles.controlContainer, { marginBottom: 12 }]}>
+            <Text style={styles.label}>Cỡ chữ: x{scale.toFixed(1)}</Text>
+            <View style={styles.sliderRow}>
+              <Text style={{ fontSize: 14, fontWeight: "bold" }}>A</Text>
+              <Slider
+                style={{ flex: 1, height: 40, marginHorizontal: 10 }}
+                minimumValue={0.5}
+                maximumValue={2.0}
+                step={0.1}
+                value={scale}
+                onValueChange={(val: any) => {
+                  const roundedVal = parseFloat(val.toFixed(1));
+                  changeScale(roundedVal);
+                }}
+                minimumTrackTintColor="#2ecc71"
+                maximumTrackTintColor="#000000"
+                thumbTintColor="#2ecc71"
+              />
+              <Text style={{ fontSize: 24, fontWeight: "bold" }}>A</Text>
             </View>
           </View>
 
+          {/* Xem trước mẫu in - thay đổi theo cỡ chữ và khổ giấy */}
           <View style={styles.previewSection}>
             <Text style={styles.previewTitle}>Xem trước mẫu in</Text>
-            <Text style={styles.previewSubtitle}>(Kéo thanh trượt để chỉnh cỡ chữ)</Text>
-
+            <Text style={styles.previewSubtitle}>(Kéo thanh để chỉnh cỡ chữ & khổ giấy)</Text>
             <View style={styles.paperContainer}>
-              {/* Component in hóa đơn - theo layout đã lưu của user */}
               <DynamicNotiInvoiceLayout
                 forwardedRef={viewShotRef}
                 invoice={sampleInvoice as any}
                 layout={previewLayout}
                 visible={true}
+                pixelWidth={printerSettings.selectedWidthPx}
               />
             </View>
           </View>
+
+          {/* Test & Save button */}
+          <TouchableOpacity
+            style={[
+              styles.printerBtn,
+              { backgroundColor: "#16a34a" },
+              (printerSettings.isTesting || !printerSettings.selectedPrinter) && styles.printerBtnDisabled,
+            ]}
+            onPress={printerSettings.testAndSave}
+            disabled={printerSettings.isTesting || !printerSettings.selectedPrinter}
+          >
+            {printerSettings.isTesting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <MaterialIcons name="print" size={18} color="#fff" />
+            )}
+            <Text style={styles.printerBtnText}>
+              {printerSettings.isTesting ? "Đang test in..." : "Test in & Lưu cấu hình"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Clear config */}
+          {printerSettings.savedPrinter && (
+            <TouchableOpacity
+              style={[styles.printerBtn, { backgroundColor: "#ef4444", marginTop: 6 }]}
+              onPress={printerSettings.clearPrinter}
+              disabled={printerSettings.isTesting}
+            >
+              <MaterialIcons name="delete-outline" size={18} color="#fff" />
+              <Text style={styles.printerBtnText}>Xóa cấu hình máy in</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Actions Card */}
@@ -598,12 +724,80 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1,
     borderColor: "#ddd",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  },
+  // --- Printer Settings ---
+  statusDotGreen: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#16a34a",
+  },
+  statusDotRed: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#dc2626",
+  },
+  printerBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    overflow: "hidden", // Tránh nội dung tràn ra bo góc
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#2563eb",
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  printerBtnDisabled: {
+    backgroundColor: "#94a3b8",
+  },
+  printerBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  printerList: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  printerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    backgroundColor: "#fff",
+  },
+  printerItemSelected: {
+    backgroundColor: "#eff6ff",
+  },
+  paperWidthRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  widthBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    backgroundColor: "#f1f5f9",
+    marginRight: 8,
+  },
+  widthBtnActive: {
+    borderColor: "#2563eb",
+    backgroundColor: "#2563eb",
+  },
+  widthBtnText: {
+    fontSize: 13,
+    color: "#374151",
+    fontWeight: "600",
+  },
+  widthBtnTextActive: {
+    color: "#fff",
   },
 });

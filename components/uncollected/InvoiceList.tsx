@@ -122,10 +122,10 @@ const InvoiceItem = memo(
           activeOpacity={0.7}
           onPress={() => onToggle(item)}
         >
-          {/* Layout: 70% Trái = Thông tin, 30% Phải = Buttons */}
-          <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-            {/* Bên Trái (70%) */}
-            <View style={{ flex: 3.3, marginRight: 8 }}>
+          {/* Layout: Thông tin | ▶ Xác nhận | Nút in */}
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {/* Trái: Thông tin hóa đơn */}
+            <View style={{ flex: 3, marginRight: 4 }}>
               <Text
                 style={{
                   fontWeight: item.collectionStatus === "collected" || item.isPaid ? "600" : "700",
@@ -134,7 +134,6 @@ const InvoiceItem = memo(
               >
                 {displayInvoiceNumber} - {Number(item.totalAmount).toLocaleString("vi-VN")}
               </Text>
-              {/* Countdown timer nhỏ khi đang trong giai đoạn 1h */}
               {isLocking && (
                 <Text style={{ fontSize: 10, color: "#f59e0b", fontWeight: "600" }}>
                   🔓 Khóa sau: {formatCountdown(secondsLeft!)}
@@ -148,93 +147,53 @@ const InvoiceItem = memo(
               <Text style={{ color: "#475569" }} numberOfLines={1} ellipsizeMode="tail">
                 Trạm: {item.recordBookCode || 'N/A'} - {item.customerName}
               </Text>
-              {/* {item.isPaid && (
-                <Text style={{ color: "#6b7280", fontWeight: "600", fontSize: 12, marginTop: 2 }}>
-                  ✓ Đã đóng cước
-                </Text>
-              )} */}
-              {/* Text Chi tiết bên dưới */}
               <Text style={{ fontSize: 12, color: "#94a3b8", textAlign: "left" }}>
                 {isExpanded ? "▲ Thu gọn" : "▼ Chi tiết"}
               </Text>
             </View>
 
-            {/* Bên Phải (30%): Buttons 2 dòng */}
-            <View style={{ flex: 1 }}>
-              {/* Dòng 1: In thông báo & In biên nhận */}
-              <View style={{ flexDirection: "row", gap: 2, marginBottom: 4 }}>
-                <TouchableOpacity
-                  onPress={handlePrintNotice}
-                  style={{
-                    flex: 1,
-                    backgroundColor: "#f97316",
-                    paddingVertical: 6,
-                    borderRadius: 4,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 26,
-                  }}
-                >
-                  <Ionicons name="document-text-outline" size={14} color="#fff" />
-                </TouchableOpacity>
+            {/* Giữa: Nút xác nhận thu (checkmark) */}
+            <TouchableOpacity
+              onPress={handleMarkCollected}
+              disabled={item.collectionStatus === "collected"}
+              activeOpacity={0.6}
+              style={{ paddingHorizontal: 6, alignItems: "center", justifyContent: "center" }}
+            >
+              <Ionicons
+                name={item.collectionStatus === "collected" ? "checkmark-circle" : "checkmark-circle-outline"}
+                size={34}
+                color={item.collectionStatus === "collected" ? "#9ca3af" : "#16a34a"}
+              />
+            </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={handlePrintInvoice}
-                  style={{
-                    flex: 1,
-                    backgroundColor: "#2563eb",
-                    paddingVertical: 6,
-                    borderRadius: 4,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 26,
-                  }}
-                >
-                  <Ionicons name="print" size={14} color="#fff" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Dòng 2: Đã thu & Đóng cước */}
-              <View style={{ flexDirection: "row", gap: 2 }}>
-                <TouchableOpacity
-                  onPress={handleMarkCollected}
-                  disabled={item.collectionStatus === "collected"}
-                  style={{
-                    flex: 1,
-                    backgroundColor: item.collectionStatus === "collected" ? "#9ca3af" : "#16a34a",
-                    paddingVertical: 6,
-                    borderRadius: 4,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 26,
-                    opacity: item.collectionStatus === "collected" ? 0.6 : 1,
-                  }}
-                >
-                  <Ionicons 
-                    name={item.collectionStatus === "collected" ? "checkmark-done-circle" : "checkmark"} 
-                    size={14} 
-                    color="#fff" 
-                  />
-                </TouchableOpacity>
-
-
-                <TouchableOpacity
-                  onPress={handleIsPaid}
-                  style={{
-                    flex: 1,
-                    backgroundColor: item.isPaid ? "#6b7280" : "#7c3aed",
-                    paddingVertical: 6,
-                    borderRadius: 4,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 26,
-                  }}
-                >
-                  <Ionicons name={item.isPaid ? "close" : "close-circle"} size={14} color="#fff" />
-                </TouchableOpacity>
-              </View>
-
-              
+            {/* Phải: Nút in xếp dọc (compact) */}
+            <View style={{ gap: 4 }}>
+              <TouchableOpacity
+                onPress={handlePrintNotice}
+                style={{
+                  backgroundColor: "#f97316",
+                  paddingVertical: 7,
+                  paddingHorizontal: 8,
+                  borderRadius: 6,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="document-text-outline" size={15} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handlePrintInvoice}
+                style={{
+                  backgroundColor: "#2563eb",
+                  paddingVertical: 7,
+                  paddingHorizontal: 8,
+                  borderRadius: 6,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="print" size={15} color="#fff" />
+              </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>

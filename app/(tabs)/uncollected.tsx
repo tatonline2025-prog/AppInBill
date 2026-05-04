@@ -8,6 +8,7 @@ import ViewShot from "react-native-view-shot";
 
 // --- Import API & Component ---
 import { fetch20InvoiceLargest, fetchTop3Stations, handleToggle_API, handleToggleIsPaid_API, updateInvoice } from "@/api/invoice.api";
+import FullScreenLoader from "@/components/FullScreenLoader";
 import { DynamicInvoiceLayout, DynamicNotiInvoiceLayout } from "@/components/InvoiceLayout";
 import PrinterModal from "@/components/PrinterModal";
 import InvoiceResults from "@/components/uncollected/InvoiceResults";
@@ -32,8 +33,8 @@ export default function Uncollected() {
   const [uncolInvoice, setUnColInvoice] = useState<InvoiceInfo[]>([]);
   const [topStation, setTopStations] = useState<StationSummary[]>([]);
 
-  const notiViewShotRef = useRef<ViewShot>(null); // Cho Thông báo
-  const receiptViewShotRef = useRef<ViewShot>(null); // Cho Biên nhận
+  const notiViewShotRef = useRef<ViewShot>(null);
+  const receiptViewShotRef = useRef<ViewShot>(null);
 
   // --- Sử dụng Custom Hooks để quản lý state và logic ---
   const { invoiceLayout: notiLayout, refetchLayout: refetchNoti } = useInvoiceLayout("Thông báo điện Lấp Vò");
@@ -68,8 +69,6 @@ export default function Uncollected() {
 
   const notiPrinter = useInvoicePrinter(notiViewShotRef, invoice);
   const receiptPrinter = useInvoicePrinter(receiptViewShotRef, invoice);
-
-  // --- Xử lý điều hướng nếu chưa đăng nhập ---
   useEffect(() => {
     if (!loading && !user) {
       router.replace("/login");
@@ -397,23 +396,27 @@ export default function Uncollected() {
           />  */}
         </>
       )}
-      {/* 3. Modal in (ẩn) */}
+      {/* 3. Modal in */}
       {notiPrinter?.printerModalProps?.visible && <PrinterModal {...notiPrinter.printerModalProps} />}
       {receiptPrinter?.printerModalProps?.visible && <PrinterModal {...receiptPrinter.printerModalProps} />}
+      <FullScreenLoader
+        visible={notiPrinter.isPrinting || receiptPrinter.isPrinting}
+        message="Đang in hóa đơn..."
+      />
       {/* 4. Layout in (ẩn) */}
-      {/* 1. Layout Thông Báo */}
       <DynamicNotiInvoiceLayout
         forwardedRef={notiViewShotRef}
         invoice={invoice}
         layout={notiLayout}
         visible={notiPrinter.isLayoutVisible}
+        pixelWidth={notiPrinter.paperWidthPx}
       />
-      {/* 2. Layout Biên Nhận (Thêm mới) */}
       <DynamicInvoiceLayout
         forwardedRef={receiptViewShotRef}
         invoice={invoice}
         layout={receiptLayout}
         visible={receiptPrinter.isLayoutVisible}
+        pixelWidth={receiptPrinter.paperWidthPx}
       />
     </ScrollView>
   );

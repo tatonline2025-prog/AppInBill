@@ -1,10 +1,21 @@
 // src/utils/printer.ts
-import { PixelRatio } from "react-native";
+import { PixelRatio, Platform } from "react-native";
+
+/** Key AsyncStorage dùng chung cho lưu/đọc máy in đã chọn */
+export const PRINTER_STORAGE_KEY = Platform.select({
+  ios: 'lastPrinter_iOS',
+  android: 'lastPrinter_Android',
+  default: 'lastPrinter',
+}) as string;
 
 // === HẰNG SỐ VÀ UTILS CHO VIỆC IN ===
 const PRINTER_PIXEL_WIDTH = 384;
 const screenDensity = PixelRatio.get();
 export const viewShotWidthInDp = PRINTER_PIXEL_WIDTH / screenDensity;
+
+/** Tính chiều rộng DP từ pixel thực của đầu in (203 DPI: 58mm=384px, 80mm=576px) */
+export const getViewShotWidthInDp = (pixelWidth: number): number =>
+  pixelWidth / screenDensity;
 
 // export const normalizeFont = (size: number) => {
 //   const normalizedSize = size / PixelRatio.getFontScale();

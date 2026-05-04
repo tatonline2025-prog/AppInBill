@@ -183,7 +183,8 @@ export const useUncollectedSearch = (user: IUser | null) => {
         // Khi tìm theo trạm: dùng endpoint riêng không filter status/isPaid
         // để hiển thị đầy đủ tất cả hoá đơn của trạm và hỗ trợ load more đúng
         if (type === "station") {
-          const stationRes = await searchInvoiceByStationCode_API(normalizedCode, pageToFetch, 50);
+          // Lấy tất cả hóa đơn trong trạm một lần, không phân trang
+          const stationRes = await searchInvoiceByStationCode_API(normalizedCode, 1, 500);
           return parseSearchResponse(stationRes);
         }
 
@@ -483,7 +484,7 @@ export const useUncollectedSearch = (user: IUser | null) => {
     setTotalInvoices(total);
     setTotalAmount(totalAmount);
 
-    if (newData.length >= total) {
+    if (currentSearchType === "station" || newData.length >= total) {
       setHasMore(false);
     } else {
       setHasMore(true);
@@ -519,6 +520,9 @@ export const useUncollectedSearch = (user: IUser | null) => {
 
   const handleLoadMore = async () => {
     if (isLoadingMore || !hasMore) return;
+
+    // Trạm: đã lấy tất cả trong một lần fetch, không load thêm
+    if (searchType === "station") return;
 
     // Nếu đang xem hóa đơn đã đóng cước (không có search query)
     if (showPaidFilter && !customerCode.trim()) {

@@ -1,4 +1,4 @@
-// --- File: components/uncollected/InvoiceDetail.tsx ---
+﻿// --- File: components/uncollected/InvoiceDetail.tsx ---
 
 import { updateInvoice } from "@/api/invoice.api";
 import { Text } from "@/components/StyledText";
@@ -194,7 +194,7 @@ export default function InvoiceDetail({
                 onPress={onMarkCollected}
                 style={{
                   flex: 1,
-                  backgroundColor: "#16a34a", // MĂ u xanh lĂ¡
+                  backgroundColor: "#16a34a",
                   paddingVertical: 12,
                   borderRadius: 10,
                   alignItems: "center",
@@ -221,7 +221,6 @@ export default function InvoiceDetail({
             )}
           </TouchableOpacity>
         </View>
-
         <Text
           allowFontScaling={false}
           style={{

@@ -5,33 +5,32 @@ import { View } from "react-native";
 import ViewShot from "react-native-view-shot";
 
 // Tách ra từ file utils
-import { viewShotWidthInDp } from "@/utils/printer";
+import { getViewShotWidthInDp, viewShotWidthInDp } from "@/utils/printer";
 // Tách ra từ file types
 import { InvoiceLayoutItem } from "@/types/invoice-layout";
 // Tách ra từ file components
 import {
-  BillBillingPeriod,
-  BillCollectionFee,
-  BillCollectorName,
-  BillCollectorPhone,
-  BillCollectorSeparator,
-  BillCompanyInfo,
-  BillCurrentAmount,
-  BillCustomerAddress,
-  BillCustomerCode,
-  BillCustomerName,
-  BillCustomerPhone,
-  BillDateRange,
-  BillFooter,
-  BillHeader,
-  BillNote,
-  BillPreviousAmount,
-  BillReferenceCode,
-  BillTimestamp,
-  BillTopDateTime,
-  BillTotalAmountNumber,
-  BillTotalAmountWords,
-  BillTotalCollection,
+    BillBillingPeriod,
+    BillCollectionFee,
+    BillCollectorName,
+    BillCollectorPhone,
+    BillCollectorSeparator,
+    BillCurrentAmount,
+    BillCustomerAddress,
+    BillCustomerCode,
+    BillCustomerName,
+    BillCustomerPhone,
+    BillDateRange,
+    BillFooter,
+    BillHeader,
+    BillNote,
+    BillPreviousAmount,
+    BillReferenceCode,
+    BillTimestamp,
+    BillTopDateTime,
+    BillTotalAmountNumber,
+    BillTotalAmountWords,
+    BillTotalCollection
 } from "@/components/bill/BillBlocks";
 
 // === LAYOUT MẶC ĐỊNH ===
@@ -91,12 +90,15 @@ export const DynamicInvoiceLayout = ({
   layout,
   forwardedRef,
   visible = false,
+  pixelWidth,
 }: {
   invoice: InvoiceInfo | null;
   layout: InvoiceLayoutItem[];
   forwardedRef: ForwardedRef<ViewShot>;
   visible?: boolean;
+  pixelWidth?: number;
 }) => {
+  const w = pixelWidth ? getViewShotWidthInDp(pixelWidth) : viewShotWidthInDp;
   const hasCollectionFeeBlock = layout.some((item) => item.id === "collectionFee");
   const hasTotalCollectionBlock = layout.some((item) => item.id === "totalCollection");
 
@@ -127,21 +129,21 @@ export const DynamicInvoiceLayout = ({
 
   const dynamicViewShotStyle = {
     backgroundColor: "#fff",
-    width: viewShotWidthInDp,
-    minHeight: 200, // Đảm bảo có chiều cao tối thiểu
+    width: w,
+    minHeight: 200,
     ...(visible
       ? { opacity: 1, position: "relative" as const }
         : {
           position: "absolute" as const,
           top: -9999,
           left: -9999,
-          width: viewShotWidthInDp,
+          width: w,
         }),
   };
 
   const dynamicBillContainerStyle = {
     backgroundColor: "#FFFFFF",
-    width: viewShotWidthInDp,
+    width: w,
     paddingVertical: 7,
     borderWidth: 1,
     borderColor: "#ddd",
@@ -169,12 +171,15 @@ export const DynamicNotiInvoiceLayout = ({
   layout,
   forwardedRef,
   visible = false,
+  pixelWidth,
 }: {
   invoice: InvoiceInfo | null;
   layout: InvoiceLayoutItem[];
   forwardedRef: ForwardedRef<ViewShot>;
   visible?: boolean;
+  pixelWidth?: number;
 }) => {
+  const w = pixelWidth ? getViewShotWidthInDp(pixelWidth) : viewShotWidthInDp;
   const hasCollectionFeeBlock = layout.some((item) => item.id === "collectionFee");
   const hasTotalCollectionBlock = layout.some((item) => item.id === "totalCollection");
 
@@ -226,21 +231,21 @@ export const DynamicNotiInvoiceLayout = ({
   // Quan trọng: Sử dụng width/height cố định nhỏ thay vì opacity: 0 để ViewShot có thể capture
   const dynamicViewShotStyle = {
     backgroundColor: "#fff",
-    width: viewShotWidthInDp,
-    minHeight: 200, // Đảm bảo có chiều cao tối thiểu
+    width: w,
+    minHeight: 200,
     ...(visible
       ? { opacity: 1, position: "relative" as const }
       : {
           position: "absolute" as const,
           top: -9999,
           left: -9999,
-          width: viewShotWidthInDp,
+          width: w,
         }),
   };
 
   const dynamicBillContainerStyle = {
     backgroundColor: "#FFFFFF",
-    width: viewShotWidthInDp,
+    width: w,
     paddingVertical: 7,
     borderWidth: 1,
     borderColor: "#ddd",

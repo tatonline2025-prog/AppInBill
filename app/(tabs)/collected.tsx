@@ -4,13 +4,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, RefreshControl, ScrollView, TouchableOpacity, View } from "react-native";
-import { showMessage } from "react-native-flash-message";
 import ViewShot from "react-native-view-shot";
 
+import { ActivityIndicator, Alert, FlatList, RefreshControl, ScrollView, TouchableOpacity, View } from "react-native";
+import { showMessage } from "react-native-flash-message";
+
 // Hooks & API
-import { handleToggle_API } from "@/api/invoice.api";
+import { handleToggle_API, updateInvoice } from "@/api/invoice.api";
 import { getInvoiceLayout } from "@/api/invoicelayout.api";
+import FullScreenLoader from "@/components/FullScreenLoader";
 import { useAuth } from "@/context/AuthContext";
 import { useInvoicePrinter } from "@/hooks/useInvoicePrinter";
 import { shortenCustomerCode } from "@/utils/shortenCustomerCode";
@@ -23,8 +25,6 @@ import { useCollectedManager } from "@/hooks/collected/useCollectedManager";
 import { styles } from "@/styles/Collected.styles";
 import { InvoiceInfo } from "@/types/invoice";
 import { DEFAULT_INVOICE_LAYOUT, InvoiceLayoutItem } from "@/types/invoice-layout";
-
-// --- Helper: countdown 1h ---
 function useCollectedCountdown(collectionDate?: string | null) {
   const [secondsLeft, setSecondsLeft] = React.useState<number | null>(null);
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
@@ -161,13 +161,17 @@ export default function Collected() {
     totalAmount,
   } = useCollectedManager(user);
 
+  const [invoiceLayout, setInvoiceLayout] = useState<InvoiceLayoutItem[] | null>(null);
+  const [isLayoutLoading, setIsLayoutLoading] = useState(true);
+
   const viewShotRef = useRef<ViewShot>(null);
-  const { handlePrintInvoice, printerModalProps, isLayoutVisible } = useInvoicePrinter(viewShotRef, selectedInvoice);
+  const { handlePrintInvoice, printerModalProps, isLayoutVisible, isPrinting, paperWidthPx } = useInvoicePrinter(
+    viewShotRef,
+    selectedInvoice
+  );
 
   // --- Local State ---
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [invoiceLayout, setInvoiceLayout] = useState<InvoiceLayoutItem[] | null>(null);
-  const [isLayoutLoading, setIsLayoutLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   // --- Effects ---
@@ -241,6 +245,10 @@ export default function Collected() {
       const token = await AsyncStorage.getItem("token");
       if (!token) return;
       await handleToggle_API(targetInvoice._id, "collectionStatus");
+      // Cố gắng xóa assignedTo — bỏ qua nếu backend không hỗ trợ null
+      try {
+        await updateInvoice(targetInvoice._id, { assignedTo: null });
+      } catch {}
       showMessage({ message: "Đã hoàn lại trạng thái.", type: "success" });
 
       setSelectedInvoice(null);
@@ -428,43 +436,8 @@ export default function Collected() {
     );
   };
 
-  // --- 2. RENDER FOOTER (Nút Load More) ---
-  const renderFooter = () => {
-    if (invoiceData.length === 0 || currentPage >= totalPages) return <View style={{ height: 20 }} />;
-    return (
-      <View style={{ marginTop: 10, marginBottom: 20 }}>
-        <TouchableOpacity
-          onPress={() => {
-            if (selectedDate) searchByDate(selectedDate, true);
-            else searchByText(undefined, true);
-          }}
-          disabled={isLoadingMore}
-          style={{
-            padding: 12,
-            marginTop: 4,
-            marginBottom: 20,
-            backgroundColor: "#f8fafc",
-            borderRadius: 8,
-            alignItems: "center",
-            borderWidth: 1,
-            borderColor: "#cbd5e1",
-            borderStyle: "dashed",
-            flexDirection: "row",
-            justifyContent: "center",
-          }}
-        >
-          {isLoadingMore ? (
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <ActivityIndicator size="small" color="#0d9488" />
-              <Text style={{ marginLeft: 8, color: "#64748b", fontSize: 14 }}>Đang tải thêm...</Text>
-            </View>
-          ) : (
-            <Text style={{ color: "#0f766e", fontWeight: "600", fontSize: 14 }}>▼ Xem thêm</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    );
-  };
+  // --- 2. RENDER FOOTER ---
+  const renderFooter = () => <View style={{ height: 20 }} />;
 
   return (
     <View style={styles.container}>
@@ -507,12 +480,14 @@ export default function Collected() {
 
       {/* --- CÁC MODAL VÀ VIEW ẨN --- */}
       {printerModalProps.visible && <PrinterModal {...printerModalProps} />}
+      <FullScreenLoader visible={isPrinting} message="Đang in hóa đơn..." />
 
       <DynamicInvoiceLayout
         forwardedRef={viewShotRef}
         invoice={selectedInvoice}
         layout={invoiceLayout || DEFAULT_INVOICE_LAYOUT}
         visible={isLayoutVisible}
+        pixelWidth={paperWidthPx}
       />
     </View>
   );

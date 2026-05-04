@@ -1,11 +1,12 @@
 import { Text } from "@/components/StyledText";
 import { InvoiceInfo } from "@/types/invoice";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface PrinterDevice {
   name: string;
   address: string;
+  paperWidthPx?: number;
 }
 
 interface PrinterModalProps {
@@ -14,7 +15,7 @@ interface PrinterModalProps {
   isScanning: boolean;
   isPrinting?: boolean;
   isLayoutVisible?: boolean;
-  savedPrinter?: PrinterDevice | null;  // New: from hook
+  savedPrinter?: PrinterDevice | null;
   onClose: () => void;
   onScan: () => void;
   onSelectPrinter: (printer: PrinterDevice, invoice?: InvoiceInfo | null) => void;
@@ -33,6 +34,15 @@ export default function PrinterModal({
   onSelectPrinter,
   currentInvoice,
 }: PrinterModalProps) {
+  const [selectedWidth, setSelectedWidth] = useState<384 | 576>(384);
+
+  // Sync width toggle with saved printer's paper width
+  useEffect(() => {
+    const w = savedPrinter?.paperWidthPx;
+    if (w === 384 || w === 576) setSelectedWidth(w);
+    else setSelectedWidth(384);
+  }, [savedPrinter]);
+
   const isProcessing = isScanning || isPrinting || isLayoutVisible;
 
   return (
@@ -52,15 +62,34 @@ export default function PrinterModal({
             </View>
           )}
 
+          {/* Paper width selector */}
+          {!isPrinting && (
+            <View style={styles.paperWidthRow}>
+              <Text style={styles.paperWidthLabel}>Khổ giấy:</Text>
+              <TouchableOpacity
+                onPress={() => setSelectedWidth(384)}
+                style={[styles.widthBtn, selectedWidth === 384 && styles.widthBtnActive]}
+              >
+                <Text style={[styles.widthBtnText, selectedWidth === 384 && styles.widthBtnTextActive]}>58mm</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setSelectedWidth(576)}
+                style={[styles.widthBtn, selectedWidth === 576 && styles.widthBtnActive]}
+              >
+                <Text style={[styles.widthBtnText, selectedWidth === 576 && styles.widthBtnTextActive]}>80mm</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Trạng thái đang xử lý (quét/in/layout) */}
           {isProcessing && (
             <View style={styles.scanningContainer}>
               <ActivityIndicator size="small" color="#2563eb" />
               <Text style={styles.scanningText}>
-                {isLayoutVisible 
-                  ? "⏳ Chuẩn bị layout hóa đơn..." 
-                  : isPrinting 
-                    ? "Đang in, vui lòng chờ..." 
+                {isLayoutVisible
+                  ? "⏳ Chuẩn bị ảnh hóa đơn..."
+                  : isPrinting
+                    ? "Đang in, vui lòng chờ..."
                     : "Đang quét..."}
               </Text>
             </View>
@@ -75,7 +104,7 @@ export default function PrinterModal({
               {printers.map((printer, idx) => (
                 <TouchableOpacity
                   key={printer.address}
-                  onPress={() => onSelectPrinter(printer, currentInvoice)}
+                  onPress={() => onSelectPrinter({ ...printer, paperWidthPx: selectedWidth }, currentInvoice)}
                   style={[styles.printerItem, { borderBottomWidth: idx !== printers.length - 1 ? 1 : 0 }]}
                   disabled={isProcessing}
                 >
@@ -238,6 +267,38 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: "#94a3b8",
+  },
+  paperWidthRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    gap: 8,
+  },
+  paperWidthLabel: {
+    fontSize: 14,
+    color: "#374151",
+    fontWeight: "600",
+    marginRight: 4,
+  },
+  widthBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    backgroundColor: "#f1f5f9",
+  },
+  widthBtnActive: {
+    borderColor: "#2563eb",
+    backgroundColor: "#2563eb",
+  },
+  widthBtnText: {
+    fontSize: 13,
+    color: "#374151",
+    fontWeight: "600",
+  },
+  widthBtnTextActive: {
+    color: "#fff",
   },
 });
 
