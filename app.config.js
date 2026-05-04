@@ -5,8 +5,8 @@ export default {
     owner: "tatcoltd",
     name: "T.A.T In Bill",
     slug: "InBillApp",
-    version: "1.7.0",
-    orientation: "portrait",
+    version: "1.8.0",
+    orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "inbillapp",
     userInterfaceStyle: "light",
@@ -21,7 +21,7 @@ export default {
       },
     },
     android: {
-      versionCode: 44,
+      versionCode: 45,
       minSdkVersion: 24,
       ndkVersion: "27.1.12297006",
       enableProguardInReleaseBuilds: true,
@@ -31,7 +31,6 @@ export default {
         backgroundImage: "./assets/images/android-icon-background.png",
         monochromeImage: "./assets/images/android-icon-monochrome.png",
       },
-      edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: "com.vodang.InBillApp",
       permissions: [
@@ -56,6 +55,15 @@ export default {
     },
     plugins: [
       "expo-router",
+      [
+        "expo-navigation-bar",
+        {
+          position: "absolute",
+          visibility: "hidden",
+          behavior: "overlay-swipe",
+          legacyVisible: "sticky-immersive"
+        }
+      ],
       [
         "expo-splash-screen",
         {
