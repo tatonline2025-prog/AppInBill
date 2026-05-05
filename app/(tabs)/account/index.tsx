@@ -197,6 +197,11 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Số điện thoại:</Text>
+            <Text style={styles.infoValue}>{user?.phone || "Chưa cập nhật"}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Tên đăng nhập:</Text>
             <Text style={styles.infoValue}>{user?.username}</Text>
           </View>

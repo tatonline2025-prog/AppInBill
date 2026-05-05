@@ -98,6 +98,9 @@ export const DynamicInvoiceLayout = ({
   visible?: boolean;
   pixelWidth?: number;
 }) => {
+  // isPreviewMode: visible=true nhưng không có pixelWidth → đang xem trước trên màn hình
+  // (khi in thật, pixelWidth luôn được truyền vào)
+  const isPreviewMode = visible && !pixelWidth;
   const w = pixelWidth ? getViewShotWidthInDp(pixelWidth) : viewShotWidthInDp;
   const hasCollectionFeeBlock = layout.some((item) => item.id === "collectionFee");
   const hasTotalCollectionBlock = layout.some((item) => item.id === "totalCollection");
@@ -130,11 +133,10 @@ export const DynamicInvoiceLayout = ({
 
   const dynamicViewShotStyle = {
     backgroundColor: "#fff",
-    width: w,
     minHeight: 200,
     ...(visible
-      ? { opacity: 1, position: "relative" as const }
-        : {
+      ? { opacity: 1, position: "relative" as const, width: isPreviewMode ? ("100%" as const) : w }
+      : {
           position: "absolute" as const,
           top: -9999,
           left: -9999,
@@ -144,7 +146,7 @@ export const DynamicInvoiceLayout = ({
 
   const dynamicBillContainerStyle = {
     backgroundColor: "#FFFFFF",
-    width: w,
+    width: isPreviewMode ? ("100%" as const) : w,
     paddingVertical: 7,
     borderWidth: 1,
     borderColor: "#ddd",
@@ -180,6 +182,7 @@ export const DynamicNotiInvoiceLayout = ({
   visible?: boolean;
   pixelWidth?: number;
 }) => {
+  const isPreviewMode = visible && !pixelWidth;
   const w = pixelWidth ? getViewShotWidthInDp(pixelWidth) : viewShotWidthInDp;
   const hasCollectionFeeBlock = layout.some((item) => item.id === "collectionFee");
   const hasTotalCollectionBlock = layout.some((item) => item.id === "totalCollection");
@@ -229,13 +232,12 @@ export const DynamicNotiInvoiceLayout = ({
     return BlockMap[block.id] || null;
   };
 
-  // Quan trọng: Sử dụng width/height cố định nhỏ thay vì opacity: 0 để ViewShot có thể capture
+  // isPreviewMode: visible=true nhưng không có pixelWidth → đang xem trước trên màn hình
   const dynamicViewShotStyle = {
     backgroundColor: "#fff",
-    width: w,
     minHeight: 200,
     ...(visible
-      ? { opacity: 1, position: "relative" as const }
+      ? { opacity: 1, position: "relative" as const, width: isPreviewMode ? ("100%" as const) : w }
       : {
           position: "absolute" as const,
           top: -9999,
@@ -246,7 +248,7 @@ export const DynamicNotiInvoiceLayout = ({
 
   const dynamicBillContainerStyle = {
     backgroundColor: "#FFFFFF",
-    width: w,
+    width: isPreviewMode ? ("100%" as const) : w,
     paddingVertical: 7,
     borderWidth: 1,
     borderColor: "#ddd",

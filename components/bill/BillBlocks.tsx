@@ -2,10 +2,10 @@
 import { useAuth } from "@/context/AuthContext";
 import { InvoiceInfo } from "@/types/invoice";
 import { day, month, numberToVietnameseWords } from "@/utils/printer"; // Import tá»« file utils má»›i
+import { VN_TIMEZONE } from "@/utils/vnTimezone";
 import React from "react";
 import { View } from "react-native";
 import { BillText } from "./BillText"; // Import tá»« BillText má»›i
-import { VN_TIMEZONE } from "@/utils/vnTimezone";
 
 const isMissing = (value: any) => {
   if (value === null || value === undefined) return true;
@@ -192,13 +192,17 @@ export const BillCollectorSeparator = ({ label }: { label: string }) => (
   </View>
 );
 
-export const BillCollectorName = ({ invoice, label }: { invoice: InvoiceInfo | null; label: string }) => (
-  <Row label={label} value={invoice?.assignedTo?.fullName} />
-);
+export const BillCollectorName = ({ invoice, label }: { invoice: InvoiceInfo | null; label: string }) => {
+  const { user } = useAuth();
+  const name = user?.fullName || invoice?.assignedTo?.fullName;
+  return <Row label={label} value={name} />;
+};
 
-export const BillCollectorPhone = ({ invoice, label }: { invoice: InvoiceInfo | null; label: string }) => (
-  <Row label={label} value={invoice?.assignedTo?.phone} />
-);
+export const BillCollectorPhone = ({ invoice, label }: { invoice: InvoiceInfo | null; label: string }) => {
+  const { user } = useAuth();
+  const phone = user?.phone || invoice?.assignedTo?.phone;
+  return <Row label={label} value={phone} />;
+};
 
 export const BillTimestamp = ({ label }: { label: string }) => (
   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 1, alignItems: "flex-start" }}>

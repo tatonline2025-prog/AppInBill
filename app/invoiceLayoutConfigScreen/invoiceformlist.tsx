@@ -237,6 +237,9 @@ export default function InvoiceLayoutScreen() {
       <Modal visible={previewVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.previewContainer}>
+            <Text style={{ textAlign: "center", fontSize: 12, color: "#555", paddingTop: 10 }}>
+              Mẫu: {templateType}
+            </Text>
             <ScrollView contentContainerStyle={{ alignItems: "center", paddingVertical: 20 }}>
               <View
                 style={{
@@ -249,22 +252,28 @@ export default function InvoiceLayoutScreen() {
                   elevation: 3,
                 }}
               >
-                {templateType === "Biên nhận thanh toán" && (
+                {layout && templateType.toLowerCase().includes("biên nhận") && (
                   <DynamicInvoiceLayout
                     forwardedRef={viewShotRef}
                     invoice={sampleInvoice as any}
-                    layout={layout!}
+                    layout={layout}
                     visible={true}
                   />
                 )}
 
-                {templateType === "Thông báo điện Lấp Vò" && (
+                {layout && templateType.toLowerCase().includes("thông báo") && (
                   <DynamicNotiInvoiceLayout
                     forwardedRef={viewShotRef}
                     invoice={sampleInvoice as any}
-                    layout={layout!}
+                    layout={layout}
                     visible={true}
                   />
+                )}
+
+                {layout && !templateType.toLowerCase().includes("biên nhận") && !templateType.toLowerCase().includes("thông báo") && (
+                  <Text style={{ color: "#888", padding: 20 }}>
+                    Không nhận dạng được mẫu: "{templateType}"
+                  </Text>
                 )}
               </View>
             </ScrollView>
