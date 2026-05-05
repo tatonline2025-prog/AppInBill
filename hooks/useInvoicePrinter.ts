@@ -44,6 +44,7 @@ export const useInvoicePrinter = (
 
   const isMountedRef = useRef(true);
   const isStartingRef = useRef(false);
+  const lastPrinterAddressRef = useRef<string>("");
   const readyStateRef = useRef<{ isReady: boolean; checkedAt: number }>({
     isReady: false,
     checkedAt: 0,
@@ -275,6 +276,9 @@ export const useInvoicePrinter = (
         return;
       }
 
+      const ready = await ensureBluetoothReady();
+      if (!ready) return;
+
       await connectAndPrint(printer, targetInvoice);
     } catch {
       Alert.alert("Lỗi", "Có lỗi không mong đợi khi bắt đầu in.");
@@ -283,8 +287,16 @@ export const useInvoicePrinter = (
     }
   };
 
+  const cancelPrint = async () => {
+    try { await BLEPrinter.closeConn(); } catch {}
+    setIsLayoutVisible(false);
+    setIsPrinting(false);
+    isStartingRef.current = false;
+  };
+
   return {
     handlePrintInvoice,
+    cancelPrint,
     updateInvoice,
     currentInvoice,
     isPrinting,

@@ -215,6 +215,16 @@ export default function InvoiceLayoutScreen() {
     );
   }
 
+  if (forms.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ fontSize: 16, color: "#888", textAlign: "center", paddingHorizontal: 24 }}>
+          Không tìm thấy mẫu hoá đơn nào.{"\n"}Vui lòng kiểm tra kết nối mạng và thử lại.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1 }}>
       <FlatList

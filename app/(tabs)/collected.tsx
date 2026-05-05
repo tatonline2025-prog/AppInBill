@@ -165,7 +165,7 @@ export default function Collected() {
   const [isLayoutLoading, setIsLayoutLoading] = useState(true);
 
   const viewShotRef = useRef<ViewShot>(null);
-  const { handlePrintInvoice, printerModalProps, isLayoutVisible, isPrinting, paperWidthPx } = useInvoicePrinter(
+  const { handlePrintInvoice, printerModalProps, isLayoutVisible, isPrinting, paperWidthPx, cancelPrint } = useInvoicePrinter(
     viewShotRef,
     selectedInvoice
   );
@@ -480,7 +480,7 @@ export default function Collected() {
 
       {/* --- CÁC MODAL VÀ VIEW ẨN --- */}
       {printerModalProps.visible && <PrinterModal {...printerModalProps} />}
-      <FullScreenLoader visible={isPrinting} message="Đang in hóa đơn..." />
+      <FullScreenLoader visible={isPrinting} message="Đang in hóa đơn..." onCancel={cancelPrint} />
 
       <DynamicInvoiceLayout
         forwardedRef={viewShotRef}

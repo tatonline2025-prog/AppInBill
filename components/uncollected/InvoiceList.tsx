@@ -54,6 +54,7 @@ type InvoiceListProps = {
   totalInvoices?: number;
   totalAmount?: number;
   onUpdateInfo?: (updatedInvoice: InvoiceInfo) => void;
+  isPrinting?: boolean;
 };
 
 // Hàm rút gọn mã khách hàng: PB0709001234 -> PB071234 (bỏ phần 0900)
@@ -72,12 +73,14 @@ const InvoiceItem = memo(
     onToggle,
     actions,
     onUpdateInfo,
+    isPrinting,
   }: {
     item: InvoiceInfo;
     isExpanded: boolean;
     onToggle: (item: InvoiceInfo) => void;
     actions: any;
     onUpdateInfo?: (updatedInvoice: InvoiceInfo) => void;
+    isPrinting?: boolean;
   }) {
     const handlePrintNotice = (e: any) => {
       e.stopPropagation();
@@ -170,8 +173,9 @@ const InvoiceItem = memo(
             <View style={{ gap: 4 }}>
               <TouchableOpacity
                 onPress={handlePrintNotice}
+                disabled={isPrinting}
                 style={{
-                  backgroundColor: "#f97316",
+                  backgroundColor: isPrinting ? "#fdba74" : "#f97316",
                   paddingVertical: 7,
                   paddingHorizontal: 8,
                   borderRadius: 6,
@@ -183,8 +187,9 @@ const InvoiceItem = memo(
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handlePrintInvoice}
+                disabled={isPrinting}
                 style={{
-                  backgroundColor: "#2563eb",
+                  backgroundColor: isPrinting ? "#93c5fd" : "#2563eb",
                   paddingVertical: 7,
                   paddingHorizontal: 8,
                   borderRadius: 6,
@@ -219,6 +224,7 @@ const InvoiceItem = memo(
               onPrintInvoice={() => actions.onPrintInvoice(item)}
               onIsPaid={() => actions.onIsPaid(item)}
               onUpdateInfo={onUpdateInfo}
+              isPrinting={isPrinting}
             />
           </View>
         )}
@@ -228,6 +234,7 @@ const InvoiceItem = memo(
   (prevProps, nextProps) => {
     if (prevProps.isExpanded !== nextProps.isExpanded) return false;
     if (prevProps.item !== nextProps.item) return false;
+    if (prevProps.isPrinting !== nextProps.isPrinting) return false;
     if (nextProps.isExpanded) {
       return prevProps.actions === nextProps.actions;
     }
@@ -246,6 +253,7 @@ export default function InvoiceList({
   totalInvoices,
   totalAmount,
   onUpdateInfo,
+  isPrinting = false,
 }: InvoiceListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -311,6 +319,7 @@ export default function InvoiceList({
             onToggle={handleToggleItem}
             actions={actions}
             onUpdateInfo={onUpdateInfo}
+            isPrinting={isPrinting}
           />
         ))}
       </View>

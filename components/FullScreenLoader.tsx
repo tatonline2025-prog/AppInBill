@@ -1,14 +1,15 @@
 // components/FullScreenLoader.tsx
 import { Text } from "@/components/StyledText";
 import React from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface FullScreenLoaderProps {
   visible: boolean;
   message?: string;
+  onCancel?: () => void;
 }
 
-export default function FullScreenLoader({ visible, message = "Đang tải dữ liệu..." }: FullScreenLoaderProps) {
+export default function FullScreenLoader({ visible, message = "Đang tải dữ liệu...", onCancel }: FullScreenLoaderProps) {
   if (!visible) return null;
 
   return (
@@ -16,6 +17,11 @@ export default function FullScreenLoader({ visible, message = "Đang tải dữ 
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#2563eb" />
         <Text style={styles.text}>{message}</Text>
+        {onCancel && (
+          <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
+            <Text style={styles.cancelText}>✕</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -39,11 +45,25 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     flexDirection: "row",
     alignItems: "center",
+    gap: 10,
   },
   text: {
-    marginLeft: 10,
     fontWeight: "600",
     fontSize: 16,
     color: "#1e293b",
+    flex: 1,
+  },
+  cancelButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#e2e8f0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelText: {
+    fontSize: 14,
+    color: "#475569",
+    fontWeight: "700",
   },
 });

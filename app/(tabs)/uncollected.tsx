@@ -2,7 +2,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, RefreshControl, ScrollView } from "react-native";
+import { Alert, RefreshControl, ScrollView, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
 import ViewShot from "react-native-view-shot";
 
@@ -69,6 +69,11 @@ export default function Uncollected() {
 
   const notiPrinter = useInvoicePrinter(notiViewShotRef, invoice);
   const receiptPrinter = useInvoicePrinter(receiptViewShotRef, invoice);
+  const isAnyPrinting = notiPrinter.isPrinting || receiptPrinter.isPrinting;
+  const cancelAnyPrint = async () => {
+    await notiPrinter.cancelPrint();
+    await receiptPrinter.cancelPrint();
+  };
   useEffect(() => {
     if (!loading && !user) {
       router.replace("/login");
@@ -325,85 +330,89 @@ export default function Uncollected() {
      GIAO DIỆN CHÍNH (đã gọn gàng hơn)
      ========================================================== */
   return (
-    <ScrollView
-      contentContainerStyle={{
-        flexGrow: 1,
-        backgroundColor: "#f8fafc",
-        alignItems: "center",
-        padding: 20,
-      }}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={["#2563eb"]}
-          // Chỉ enable pull-to-refresh khi KHÔNG có search đang thực hiện
-          enabled={suggestions?.length === 0 && !isSearch}
-        />
-      }
-    >
-      {/* 1. Component tìm kiếm */}
-      <SearchInput
-        customerCode={customerCode}
-        onChange={handleChange}
-        onSearch={handleSearch}
-        suggestions={suggestions}
-        onSelect={handleSelectSuggestion}
-        searchType={searchType}
-        onChangeSearchType={setSearchType}
-        showPaidFilter={showPaidFilter}
-        onTogglePaidFilter={handleTogglePaidFilter}
-        isAdmin={isAdmin}
-      />
-
-      {/* 2. Component hiển thị kết quả (tự động quyết định) */}
-      <InvoiceResults
-        isSearch={isSearch}
-        loading={isLoading}
-        searchType={searchType}
-        customerCode={customerCode}
-        selectedInvoice={invoice}
-        invoiceData={invoiceData}
-        onSelectInvoice={setInvoice}
-        onMarkCollected={handleMarkAsCollected}
-        onPrint={handlePrintNotification}
-        onPrintInvoice={handlePrintReceipt}
-        onIsPaid={handleIsPaid}
-        onLoadMore={handleLoadMore}
-        hasMore={hasMore}
-        isLoadingMore={isLoadingMore}
-        totalInvoices={totalInvoices}
-        totalAmount={totalAmount}
-        onUpdateInfo={handleUpdateInfo}
-      />
-      {searchType === "customer" && !isSearch && (
-        <>
-          <TopStationsList
-            title={"3 trạm hoá đơn chưa thu nhiều tiền nhất"}
-            stations={topStation}
-            onSelectStation={(name) => {
-              setSearchType("station");
-              handleSearch(name, "station");
-            }}
+    <View style={{ flex: 1, backgroundColor: "#f8fafc" }}>
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          alignItems: "center",
+          padding: 20,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#2563eb"]}
+            // Chỉ enable pull-to-refresh khi KHÔNG có search đang thực hiện
+            enabled={suggestions?.length === 0 && !isSearch}
           />
+        }
+      >
+        {/* 1. Component tìm kiếm */}
+        <SearchInput
+          customerCode={customerCode}
+          onChange={handleChange}
+          onSearch={handleSearch}
+          suggestions={suggestions}
+          onSelect={handleSelectSuggestion}
+          searchType={searchType}
+          onChangeSearchType={setSearchType}
+          showPaidFilter={showPaidFilter}
+          onTogglePaidFilter={handleTogglePaidFilter}
+          isAdmin={isAdmin}
+        />
 
-          {/* <InvoiceList
+        {/* 2. Component hiển thị kết quả (tự động quyết định) */}
+        <InvoiceResults
+          isSearch={isSearch}
+          loading={isLoading}
+          searchType={searchType}
+          customerCode={customerCode}
+          selectedInvoice={invoice}
+          invoiceData={invoiceData}
+          onSelectInvoice={setInvoice}
+          onMarkCollected={handleMarkAsCollected}
+          onPrint={handlePrintNotification}
+          onPrintInvoice={handlePrintReceipt}
+          onIsPaid={handleIsPaid}
+          onLoadMore={handleLoadMore}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          totalInvoices={totalInvoices}
+          totalAmount={totalAmount}
+          onUpdateInfo={handleUpdateInfo}
+          isPrinting={isAnyPrinting}
+        />
+        {searchType === "customer" && !isSearch && (
+          <>
+            <TopStationsList
+              title={"3 trạm hoá đơn chưa thu nhiều tiền nhất"}
+              stations={topStation}
+              onSelectStation={(name) => {
+                setSearchType("station");
+                handleSearch(name, "station");
+              }}
+            />
+
+            {/* <InvoiceList
             title={"20 hoá đơn chưa thu nhiều tiền nhất"}
             invoices={uncolInvoice}
             onSelectInvoice={setInvoice}
             actions={invoiceActions}
             onUpdateInfo={handleUpdateInfo}
           />  */}
-        </>
-      )}
+          </>
+        )}
+      </ScrollView>
+
       {/* 3. Modal in */}
       {notiPrinter?.printerModalProps?.visible && <PrinterModal {...notiPrinter.printerModalProps} />}
       {receiptPrinter?.printerModalProps?.visible && <PrinterModal {...receiptPrinter.printerModalProps} />}
       <FullScreenLoader
         visible={notiPrinter.isPrinting || receiptPrinter.isPrinting}
         message="Đang in hóa đơn..."
+        onCancel={cancelAnyPrint}
       />
-      {/* 4. Layout in (ẩn) */}
+      {/* 4. Layout in (ngoài ScrollView để đảm bảo capture ảnh chính xác trên Android) */}
       <DynamicNotiInvoiceLayout
         forwardedRef={notiViewShotRef}
         invoice={invoice}
@@ -418,6 +427,6 @@ export default function Uncollected() {
         visible={receiptPrinter.isLayoutVisible}
         pixelWidth={receiptPrinter.paperWidthPx}
       />
-    </ScrollView>
+    </View>
   );
 }

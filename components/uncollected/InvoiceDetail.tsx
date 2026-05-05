@@ -17,6 +17,7 @@ type InvoiceDetailProps = {
   onPrintInvoice: () => void;
   onIsPaid: () => void;
   onUpdateInfo?: (updatedFields: InvoiceInfo) => void;
+  isPrinting?: boolean;
 };
 
 export default function InvoiceDetail({
@@ -26,6 +27,7 @@ export default function InvoiceDetail({
   onPrintInvoice,
   onIsPaid,
   onUpdateInfo,
+  isPrinting = false,
 }: InvoiceDetailProps) {
   const { user } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
@@ -158,9 +160,10 @@ export default function InvoiceDetail({
           {/* Nút In thông báo */}
           <TouchableOpacity
             onPress={onPrint}
+            disabled={isPrinting}
             style={{
-              flex: 1, // Chiếm 50% chiều rộng
-              backgroundColor: "#f97316", // MĂ u cam
+              flex: 1,
+              backgroundColor: isPrinting ? "#fdba74" : "#f97316",
               paddingVertical: 12,
               borderRadius: 10,
               alignItems: "center",
@@ -172,9 +175,10 @@ export default function InvoiceDetail({
           {/* Nút In biên nhận */}
           <TouchableOpacity
             onPress={onPrintInvoice}
+            disabled={isPrinting}
             style={{
-              flex: 1, // Chiếm 50% chiều rộng
-              backgroundColor: "#2563eb", // Màu xanh dương
+              flex: 1,
+              backgroundColor: isPrinting ? "#93c5fd" : "#2563eb",
               paddingVertical: 12,
               borderRadius: 10,
               alignItems: "center",

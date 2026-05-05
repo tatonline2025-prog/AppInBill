@@ -23,6 +23,7 @@ type InvoiceResultsProps = {
   totalInvoices?: number;
   totalAmount?: number;
   onUpdateInfo?: (updatedInvoice: InvoiceInfo) => void;
+  isPrinting?: boolean;
 };
 
 export default function InvoiceResults({
@@ -43,6 +44,7 @@ export default function InvoiceResults({
   totalInvoices,
   totalAmount,
   onUpdateInfo,
+  isPrinting = false,
 }: InvoiceResultsProps) {
   if (loading) {
     return (
@@ -88,6 +90,7 @@ export default function InvoiceResults({
         totalInvoices={totalInvoices}
         totalAmount={totalAmount}
         onUpdateInfo={onUpdateInfo}
+        isPrinting={isPrinting}
       />
     );
   }
@@ -104,6 +107,7 @@ export default function InvoiceResults({
         onPrintInvoice={() => onPrintInvoice(targetInvoice)}
         onIsPaid={() => onIsPaid(targetInvoice)}
         onUpdateInfo={onUpdateInfo}
+        isPrinting={isPrinting}
       />
     </View>
   );

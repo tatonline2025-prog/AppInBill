@@ -122,6 +122,7 @@ export const DynamicInvoiceLayout = ({
       collectorName: <BillCollectorName invoice={invoice} label={block.label} />,
       collectorPhone: <BillCollectorPhone invoice={invoice} label={block.label} />,
       topDateTime: <BillTopDateTime label={block.label} />,
+      timestamp: <BillTimestamp label={block.label} />,
       footer: <BillFooter label={block.label} />,
     };
     return BlockMap[block.id] || null;
