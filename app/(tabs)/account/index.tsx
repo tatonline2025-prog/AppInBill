@@ -310,7 +310,7 @@ export default function ProfileScreen() {
               onPress={() => printerSettings.setSelectedWidthPx(384)}
             >
               <Text style={[styles.widthBtnText, printerSettings.selectedWidthPx === 384 && styles.widthBtnTextActive]}>
-                PT · 58mm
+                58mm
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -318,7 +318,7 @@ export default function ProfileScreen() {
               onPress={() => printerSettings.setSelectedWidthPx(576)}
             >
               <Text style={[styles.widthBtnText, printerSettings.selectedWidthPx === 576 && styles.widthBtnTextActive]}>
-                Bixolon · 80mm
+                80mm
               </Text>
             </TouchableOpacity>
           </View>

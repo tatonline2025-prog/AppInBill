@@ -15,7 +15,6 @@ import { getInvoiceLayout } from "@/api/invoicelayout.api";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { useAuth } from "@/context/AuthContext";
 import { useInvoicePrinter } from "@/hooks/useInvoicePrinter";
-import { shortenCustomerCode } from "@/utils/shortenCustomerCode";
 
 // Components
 import InvoiceDetail from "@/components/InvoiceDetail";
@@ -72,7 +71,10 @@ const InvoiceItem = React.memo(
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: invoiceNumberWeight, color: invoiceNumberColor }}>
-                {shortenCustomerCode(item.invoiceNumber || item.customerPhone || '')} - {item.customerName}
+                {item.invoiceNumber || item.customerPhone || ''}
+              </Text>
+              <Text style={{ color: "#475569" }} numberOfLines={1} ellipsizeMode="tail">
+                {item.customerName}{item.recordBookCode ? ` - ${item.recordBookCode}` : ''}
               </Text>
               <Text style={{ color: "#475569" }}>Tiền: {Number(item.totalAmount).toLocaleString("vi-VN")} đ</Text>
               <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginTop: 2 }}>

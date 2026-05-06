@@ -29,6 +29,7 @@ export default function QuickAddInvoiceModal({
   const [selectedPrefix, setSelectedPrefix] = useState<string | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [stationCode, setStationCode] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isValidInvoice, setIsValidInvoice] = useState(false);
@@ -37,6 +38,7 @@ export default function QuickAddInvoiceModal({
     setSelectedPrefix(null);
     setInvoiceNumber("");
     setCustomerName("");
+    setStationCode("");
     setTotalAmount("");
   };
 
@@ -97,6 +99,7 @@ export default function QuickAddInvoiceModal({
         invoiceNumber: trimmedNumber,
         customerName: customerName.trim(),
         totalAmount: parsedAmount,
+        recordBookCode: stationCode.trim() || undefined,
       });
       
       showMessage({
@@ -198,17 +201,30 @@ export default function QuickAddInvoiceModal({
               )}
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Tên khách hàng <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Nhập tên khách hàng"
-                value={customerName}
-                onChangeText={setCustomerName}
-                placeholderTextColor="#94a3b8"
-              />
+            <View style={[styles.inputGroup, { flexDirection: "row", gap: 10 }]}>
+              <View style={{ flex: 3 }}>
+                <Text style={styles.label}>
+                  Tên khách hàng <Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nhập tên khách hàng"
+                  value={customerName}
+                  onChangeText={setCustomerName}
+                  placeholderTextColor="#94a3b8"
+                />
+              </View>
+              <View style={{ flex: 2 }}>
+                <Text style={styles.label}>Mã Trạm</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="VD: PB07"
+                  value={stationCode}
+                  onChangeText={setStationCode}
+                  autoCapitalize="characters"
+                  placeholderTextColor="#94a3b8"
+                />
+              </View>
             </View>
 
             <View style={styles.inputGroup}>

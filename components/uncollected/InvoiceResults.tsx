@@ -57,14 +57,6 @@ export default function InvoiceResults({
 
   if (isSearch !== 1 || invoiceData.length === 0) return null;
 
-  if (invoiceData.length === 0) {
-    return (
-      <View style={{ marginTop: 20, alignItems: "center" }}>
-        <Text style={{ color: "#64748b" }}>Chưa tìm thấy dữ liệu.</Text>
-      </View>
-    );
-  }
-
   // Khi không có search query (checkbox filter) hoặc searchType không phải "customer" → hiển thị danh sách
   const isListView = searchType !== "customer" || !customerCode.trim();
 
@@ -74,24 +66,48 @@ export default function InvoiceResults({
       : `Danh sách hoá đơn của ${customerCode}:`;
 
     return (
-      <InvoiceList
-        title={title}
-        invoices={invoiceData}
-        onSelectInvoice={onSelectInvoice}
-        actions={{
-          onMarkCollected,
-          onPrint,
-          onPrintInvoice,
-          onIsPaid,
-        }}
-        onLoadMore={onLoadMore}
-        hasMore={hasMore}
-        isLoading={isLoadingMore}
-        totalInvoices={totalInvoices}
-        totalAmount={totalAmount}
-        onUpdateInfo={onUpdateInfo}
-        isPrinting={isPrinting}
-      />
+      <View style={{ width: "100%" }}>
+        {searchType === "station" && customerCode.trim() && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#dbeafe",
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              marginBottom: 6,
+              borderWidth: 1,
+              borderColor: "#93c5fd",
+            }}
+          >
+            <Text style={{ fontSize: 13, color: "#1e40af", fontWeight: "700" }}>
+              📍 Trạm: {customerCode.toUpperCase()}
+            </Text>
+            <Text style={{ fontSize: 12, color: "#3b82f6", marginLeft: 8 }}>
+              ({totalInvoices ?? invoiceData.length} hóa đơn)
+            </Text>
+          </View>
+        )}
+        <InvoiceList
+          title={title}
+          invoices={invoiceData}
+          onSelectInvoice={onSelectInvoice}
+          actions={{
+            onMarkCollected,
+            onPrint,
+            onPrintInvoice,
+            onIsPaid,
+          }}
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+          isLoading={isLoadingMore}
+          totalInvoices={totalInvoices}
+          totalAmount={totalAmount}
+          onUpdateInfo={onUpdateInfo}
+          isPrinting={isPrinting}
+        />
+      </View>
     );
   }
 

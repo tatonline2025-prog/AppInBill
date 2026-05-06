@@ -57,14 +57,6 @@ type InvoiceListProps = {
   isPrinting?: boolean;
 };
 
-// Hàm rút gọn mã khách hàng: PB0709001234 -> PB071234 (bỏ phần 0900)
-const shortenInvoiceNumber = (invoiceNumber: string) => {
-  if (!invoiceNumber) return "";
-  // Tìm và thay thế phần "0900" ở giữa
-  // Ví dụ: PB0709001234 -> PB071234
-  return invoiceNumber.replace(/0900/, "...");
-};
-
 // --- 1. TÁCH COMPONENT CON & SỬ DỤNG MEMO ---
 const InvoiceItem = memo(
   function InvoiceItem({
@@ -102,8 +94,8 @@ const InvoiceItem = memo(
       actions.onIsPaid(item);
     };
 
-    // Rút gọn mã khách hàng khi không mở rộng
-    const displayInvoiceNumber = isExpanded ? item.invoiceNumber : shortenInvoiceNumber(item.invoiceNumber);
+    // Hiện full mã khách hàng
+    const displayInvoiceNumber = item.invoiceNumber;
 
     const secondsLeft = useCollectedCountdown(item);
     // isLocking = đã collected nhưng chưa hết 1h (đang trong giai đoạn có thể sửa nhưng mờ)
@@ -148,7 +140,7 @@ const InvoiceItem = memo(
                 </Text>
               )}
               <Text style={{ color: "#475569" }} numberOfLines={1} ellipsizeMode="tail">
-                Trạm: {item.recordBookCode || 'N/A'} - {item.customerName}
+                {item.customerName} - {item.recordBookCode || 'N/A'}
               </Text>
               <Text style={{ fontSize: 12, color: "#94a3b8", textAlign: "left" }}>
                 {isExpanded ? "▲ Thu gọn" : "▼ Chi tiết"}

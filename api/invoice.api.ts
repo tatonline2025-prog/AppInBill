@@ -235,6 +235,7 @@ export const quickAddInvoice = async (invoiceData: {
   invoiceNumber: string;
   customerName: string;
   totalAmount: number;
+  recordBookCode?: string;
   billing_period?: string;
   currentAmount?: number;
   previousAmount?: number;
@@ -244,6 +245,7 @@ export const quickAddInvoice = async (invoiceData: {
       invoiceNumber: invoiceData.invoiceNumber,
       customerName: invoiceData.customerName,
       totalAmount: invoiceData.totalAmount,
+      ...(invoiceData.recordBookCode ? { recordBookCode: invoiceData.recordBookCode } : {}),
     });
     return res.data;
   } catch (error) {
