@@ -24,13 +24,10 @@ const PRINT_TIMEOUT = 15000;
 const detectWidthFromName = (name: string): 384 | 576 | null => {
   const n = name.toUpperCase();
   if (
-    n.includes("BIXOLON") ||
-    n.includes("SPP-R") ||
-    n.includes("SPP_R") ||
     n.includes("80MM") ||
     n.includes("80 MM")
   )
-    return 576; // 80mm
+    return 576; // 80mm rõ ràng
   if (
     n.includes("PT-") ||
     n.includes("PT_") ||
@@ -40,7 +37,8 @@ const detectWidthFromName = (name: string): 384 | 576 | null => {
     n.includes("58 MM")
   )
     return 384; // 58mm
-  return null; // Không nhận ra
+  // Bixolon / SPP-R có cả bản 58mm lẫn 80mm → không auto-detect, để user chọn
+  return null;
 };
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, msg: string): Promise<T> =>
@@ -233,14 +231,14 @@ export const usePrinterSettings = (testViewShotRef: React.RefObject<ViewShot | n
       // Không nhận ra loại máy → đề nghị người dùng chọn
       Alert.alert(
         "Chọn khổ giấy",
-        `Không nhận ra loại máy "${p.name}".\nVui lòng chọn khổ giấy phù hợp:`,
+        `Máy in: "${p.name}"\nBixolon/SPP-R có 2 phiên bản. Chọn đúng khổ giấy đang dùng:`,
         [
           {
-            text: "PT · 58mm",
+            text: "58mm (giấy 57-58mm)",
             onPress: () => setSelectedWidthPx(384),
           },
           {
-            text: "Bixolon · 80mm",
+            text: "80mm (giấy 79-80mm)",
             onPress: () => setSelectedWidthPx(576),
           },
         ],
