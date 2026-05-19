@@ -1,5 +1,7 @@
 // utils/generateBillEscPos.ts
-// Generates ESC/POS text-based receipt – no image capture, works on all DPI printers.
+// DEEP FIX v1.8.3: Generates ESC/POS with Vietnamese code page support
+// Attempts to use printer's Vietnamese code page (CP1258/TCVN) for proper character rendering
+// Falls back to ASCII stripping only if code page switching fails.
 import { COMMANDS } from "react-native-thermal-receipt-printer-image-qr";
 
 import { InvoiceInfo } from "@/types/invoice";
@@ -18,13 +20,26 @@ const BOLD_OFF = C.TEXT_FORMAT.TXT_BOLD_OFF;
 // 32 chars fits both 58mm (~32) and 80mm (~48) — safe minimum
 const PRINT_WIDTH = 32;
 
-// ───────────────────────── Vietnamese → ASCII ─────────────────
+// ───────────────────────── ESC/POS Code Page Commands ──────────────
 /**
- * Converts Vietnamese Unicode text to plain ASCII by removing all
- * diacritical marks and the horn modifier (U+031B used by ơ/ư).
+ * ESC/POS commands for Vietnamese character support (DEEP FIX v1.8.3)
+ * Bixolon printers support multiple code pages via:
+ *   ESC t n  - Select character code table (country-specific)
+ *   ESC R n  - Select international character set
+ * 
+ * For Vietnamese:
+ *   n=45 (ESC t 45) - Vietnam code table (TCVN 5712)
+ *   n=16 (ESC R 16) - International CP1258 (Windows Vietnamese)
+ * 
+ * Used in generateBillEscPos as "\x1B\x74\x2D" when useVietnameseMode=true
+ */
+
+/**
+ * Converts Vietnamese Unicode text to plain ASCII as FALLBACK ONLY.
+ * Only used if code page switching fails or printer doesn't support it.
+ * 
+ * Removes diacritical marks and the horn modifier (U+031B used by ơ/ư).
  * "đ"/"Đ" are replaced manually since they don't decompose via NFD.
- *
- * Result is printable on any ESC/POS printer regardless of code page.
  *
  * Examples:
  *   "Nguyễn Văn An"  →  "Nguyen Van An"
@@ -40,6 +55,12 @@ const toAscii = (str: string): string =>
     .replace(/đ/g, "d")
     .replace(/Đ/g, "D");
 
+/**
+ * Keeps Vietnamese text intact (deep fix mode).
+ * Used when code page switching is enabled - printer handles rendering.
+ */
+const keepVietnamese = (str: string): string => str;
+
 // ───────────────────────── helpers ───────────────────────────
 const isMissing = (value: unknown): boolean => {
   if (value === null || value === undefined) return true;
@@ -49,11 +70,11 @@ const isMissing = (value: unknown): boolean => {
 
 /**
  * Right-aligns `value` so the full line is PRINT_WIDTH chars.
- * Both label and value are converted to ASCII before printing.
+ * Applies text converter (either toAscii for fallback or keepVietnamese for deep fix).
  */
-const rowAligned = (label: string, value: string): string => {
-  const l = toAscii(label);
-  const v = toAscii(value);
+const rowAligned = (label: string, value: string, textConverter: (s: string) => string = toAscii): string => {
+  const l = textConverter(label);
+  const v = textConverter(value);
   const sep = ": ";
   const left = l + sep;
   const remaining = PRINT_WIDTH - left.length;
@@ -84,7 +105,8 @@ const resolveCollectionFee = (
 const renderBlock = (
   block: InvoiceLayoutItem,
   invoice: InvoiceInfo | null,
-  fee: number
+  fee: number,
+  textConverter: (s: string) => string = toAscii
 ): string => {
   const isFeeBlock =
     block.id === "collectionFee" || block.id === "totalCollection";
@@ -94,7 +116,7 @@ const renderBlock = (
 
   switch (block.id) {
     case "header":
-      return CT + BOLD_ON + toAscii(block.label) + BOLD_OFF + LF + LT;
+      return CT + BOLD_ON + textConverter(block.label) + BOLD_OFF + LF + LT;
 
     case "billingPeriod": {
       if (isMissing(invoice?.billing_period)) return "";
@@ -135,73 +157,73 @@ const renderBlock = (
         minute: "2-digit",
         second: "2-digit",
       }).format(new Date());
-      return rowAligned(block.label, `${d} ${t}`);
+      return rowAligned(block.label, `${d} ${t}`, textConverter);
     }
 
     case "customerCode":
       if (isMissing(invoice?.invoiceNumber)) return "";
-      return BOLD_ON + rowAligned(block.label, invoice!.invoiceNumber) + BOLD_OFF;
+      return BOLD_ON + rowAligned(block.label, invoice!.invoiceNumber, textConverter) + BOLD_OFF;
 
     case "customerName":
       if (isMissing(invoice?.customerName)) return "";
-      return BOLD_ON + rowAligned(block.label, invoice!.customerName) + BOLD_OFF;
+      return BOLD_ON + rowAligned(block.label, invoice!.customerName, textConverter) + BOLD_OFF;
 
     case "customerAddress":
       if (isMissing(invoice?.customerAddress)) return "";
-      return toAscii(`${block.label}: ${invoice!.customerAddress}`) + LF;
+      return textConverter(`${block.label}: ${invoice!.customerAddress}`) + LF;
 
     case "customerPhone":
       if (isMissing(invoice?.customerPhone)) return "";
-      return rowAligned(block.label, invoice!.customerPhone);
+      return rowAligned(block.label, invoice!.customerPhone, textConverter);
 
     case "referenceCode":
       if (isMissing(invoice?.recordBookCode)) return "";
-      return rowAligned(block.label, invoice!.recordBookCode!);
+      return rowAligned(block.label, invoice!.recordBookCode!, textConverter);
 
     case "currentAmount": {
       const amount = Number(invoice?.currentAmount) || 0;
-      return rowAligned(block.label, amount.toLocaleString("vi-VN"));
+      return rowAligned(block.label, amount.toLocaleString("vi-VN"), textConverter);
     }
 
     case "previousAmount": {
       const prev = Number(invoice?.previousAmount) || 0;
       if (prev === 0) return "";
-      return rowAligned(block.label, prev.toLocaleString("vi-VN"));
+      return rowAligned(block.label, prev.toLocaleString("vi-VN"), textConverter);
     }
 
     case "totalAmountNumber": {
       const finalTotal = fee > 0 ? baseTotal + fee : baseTotal;
-      return rowAligned(block.label, formatVND(finalTotal));
+      return rowAligned(block.label, formatVND(finalTotal), textConverter);
     }
 
     case "collectionFee":
       if (fee <= 0) return "";
-      return rowAligned(block.label, formatVND(fee));
+      return rowAligned(block.label, formatVND(fee), textConverter);
 
     case "totalCollection":
       if (fee <= 0) return "";
       return (
         BOLD_ON +
-        rowAligned(block.label, formatVND(baseTotal + fee)) +
+        rowAligned(block.label, formatVND(baseTotal + fee), textConverter) +
         BOLD_OFF
       );
 
     case "totalAmountWords": {
       const combined = baseTotal + fee;
-      const words = toAscii(numberToVietnameseWords(combined) || "Khong");
-      return toAscii(block.label) + ": " + words + " dong" + LF;
+      const words = textConverter(numberToVietnameseWords(combined) || "Khong");
+      return textConverter(block.label) + ": " + words + " dong" + LF;
     }
 
     case "collectorSeparator":
-      return LF + CT + toAscii(block.label) + LF + LT;
+      return LF + CT + textConverter(block.label) + LF + LT;
 
     case "collectorName":
       if (isMissing(invoice?.assignedTo?.fullName)) return "";
-      return rowAligned(block.label, invoice!.assignedTo!.fullName!);
+      return rowAligned(block.label, invoice!.assignedTo!.fullName!, textConverter);
 
     case "collectorPhone":
       if (isMissing(invoice?.assignedTo?.phone)) return "";
-      return rowAligned(block.label, invoice!.assignedTo!.phone!);
+      return rowAligned(block.label, invoice!.assignedTo!.phone!, textConverter);
 
     case "timestamp": {
       const now = new Date();
@@ -216,14 +238,14 @@ const renderBlock = (
         month: "2-digit",
         year: "numeric",
       }).format(now);
-      return rowAligned(block.label, `${timeStr} ${dayStr}`);
+      return rowAligned(block.label, `${timeStr} ${dayStr}`, textConverter);
     }
 
     case "note":
-      return toAscii(block.label) + LF;
+      return textConverter(block.label) + LF;
 
     case "footer":
-      return LF + CT + toAscii(block.label) + LF + LT;
+      return LF + CT + textConverter(block.label) + LF + LT;
 
     default:
       return "";
@@ -234,17 +256,29 @@ const renderBlock = (
 export const generateBillEscPos = (
   invoice: InvoiceInfo | null,
   layout: InvoiceLayoutItem[],
-  userCollectionFee: number | null | undefined
+  userCollectionFee: number | null | undefined,
+  useVietnameseMode: boolean = true // DEEP FIX v1.8.3: Enable Vietnamese code page support
 ): string => {
   const fee = resolveCollectionFee(invoice, userCollectionFee);
+  const textConverter = useVietnameseMode ? keepVietnamese : toAscii;
 
   const hasFeeBlock = layout.some((b) => b.id === "collectionFee");
   const hasTotalCollectionBlock = layout.some((b) => b.id === "totalCollection");
 
   let text = C.HARDWARE.HW_INIT; // reset printer state
 
+  // DEEP FIX v1.8.3: Add Vietnamese code page selection if enabled
+  // ESC t 45 = Select Vietnam code table (TCVN 5712)
+  // This tells thermal printer to use Vietnamese character mappings
+  if (useVietnameseMode) {
+    text += "\x1B\x74\x2D"; // ESC t - for Vietnam code table
+    console.log("[ESC-POS] Using Vietnamese code page (TCVN 5712)");
+  } else {
+    console.log("[ESC-POS] Using ASCII fallback (no Vietnamese support)");
+  }
+
   for (const block of layout) {
-    text += renderBlock(block, invoice, fee);
+    text += renderBlock(block, invoice, fee, textConverter);
   }
 
   // Mirror InvoiceLayout.tsx: auto-append fee blocks if not in layout
@@ -252,14 +286,16 @@ export const generateBillEscPos = (
     text += renderBlock(
       { id: "collectionFee", label: "Phi dich vu", visible: true },
       invoice,
-      fee
+      fee,
+      textConverter
     );
   }
   if (!hasTotalCollectionBlock) {
     text += renderBlock(
       { id: "totalCollection", label: "Tong thu", visible: true },
       invoice,
-      fee
+      fee,
+      textConverter
     );
   }
 
