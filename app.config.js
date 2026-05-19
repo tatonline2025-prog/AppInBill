@@ -90,7 +90,7 @@ export default {
       eas: {
         projectId: "5ffe6f10-9491-4e43-bbb0-7889ecb3233e",
       },
-      appBill: "https://hoadon.dvtienich.vn",
+      appBill: "https://inbill.dvtienich.vn/backend",
     },
     runtimeVersion: {
       policy: "appVersion",  
