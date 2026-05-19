@@ -41,11 +41,15 @@ const detectWidthFromName = (name: string): 384 | 576 | null => {
   return null;
 };
 
-const withTimeout = <T,>(promise: Promise<T>, ms: number, msg: string): Promise<T> =>
-  Promise.race([
-    promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
+const withTimeout = <T,>(promise: Promise<T>, ms: number, msg: string): Promise<T> => {
+  let timerId: ReturnType<typeof setTimeout>;
+  return Promise.race([
+    promise.finally(() => clearTimeout(timerId)),
+    new Promise<T>((_, reject) => {
+      timerId = setTimeout(() => reject(new Error(msg)), ms);
+    }),
   ]);
+};
 
 const doPrintImage = (base64: string, imageWidth: number): Promise<void> =>
   new Promise((resolve, reject) => {

@@ -99,9 +99,12 @@ export const useInvoicePrinter = (
   };
 
   const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> => {
+    let timerId: ReturnType<typeof setTimeout>;
     return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMessage)), timeoutMs)),
+      promise.finally(() => clearTimeout(timerId)),
+      new Promise<T>((_, reject) => {
+        timerId = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+      }),
     ]);
   };
 

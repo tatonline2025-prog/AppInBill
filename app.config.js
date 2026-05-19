@@ -5,7 +5,7 @@ export default {
     owner: "tatcoltd",
     name: "T.A.T In Bill",
     slug: "InBillApp",
-    version: "1.8.3",
+    version: "1.8.4",
     orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "inbillapp",
@@ -21,7 +21,7 @@ export default {
       },
     },
     android: {
-      versionCode: 48,
+      versionCode: 49,
       minSdkVersion: 24,
       ndkVersion: "27.1.12297006",
       enableProguardInReleaseBuilds: true,

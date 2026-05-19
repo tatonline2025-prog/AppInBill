@@ -41,11 +41,15 @@ export const generateBillImage = async (ref: any, timeoutMs: number = 5000): Pro
     });
   };
 
-  const withTimeout = <T,>(promise: Promise<T>): Promise<T> =>
-    Promise.race([
-      promise,
-      new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Bill capture timeout")), timeoutMs)),
+  const withTimeout = <T,>(promise: Promise<T>): Promise<T> => {
+    let timerId: ReturnType<typeof setTimeout>;
+    return Promise.race([
+      promise.finally(() => clearTimeout(timerId)),
+      new Promise<T>((_, reject) => {
+        timerId = setTimeout(() => reject(new Error("Bill capture timeout")), timeoutMs);
+      }),
     ]);
+  };
 
   try {
     const strategies: (() => Promise<string>)[] = [];
