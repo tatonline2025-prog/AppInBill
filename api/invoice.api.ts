@@ -1,4 +1,4 @@
-﻿// frontend/services/api.ts
+// frontend/services/api.ts
 import { api } from "@/context/AuthContext";
 import { FetchInvoiceResponse, InvoiceInfo } from "@/types/invoice";
 

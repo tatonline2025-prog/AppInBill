@@ -358,7 +358,7 @@ export const useUncollectedSearch = (user: IUser | null) => {
         return { data: [], total: 0, totalAmount: 0 };
       }
     },
-    [user, showPaidFilter, isAdmin]
+    [user, showPaidFilter]
   );
 
   // --- 3. Xử lý Debounce cho Gợi ý ---

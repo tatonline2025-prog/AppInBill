@@ -1,4 +1,4 @@
-﻿// --- File: components/uncollected/InvoiceDetail.tsx ---
+// --- File: components/uncollected/InvoiceDetail.tsx ---
 
 import { updateInvoice } from "@/api/invoice.api";
 import { Text } from "@/components/StyledText";

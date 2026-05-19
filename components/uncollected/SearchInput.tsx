@@ -1,7 +1,7 @@
 import { Text, TextInput } from "@/components/StyledText";
 import { InvoiceInfo } from "@/types/invoice";
 import React from "react";
-import { Pressable, ScrollView, TouchableOpacity, View } from "react-native";
+import { ScrollView, TouchableOpacity, View } from "react-native";
 
 
 

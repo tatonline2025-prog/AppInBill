@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const decoded: any = jwtDecode(storedToken);
       const now = Date.now() / 1000;
       return decoded.exp > now;
-    } catch (e) {
+    } catch {
       return false;
     }
   }, []);
@@ -156,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [refreshUser]);
 
   return (
     <AuthContext.Provider value={{ user, token, loading, isAuthenticated, error, logout, refreshUser }}>

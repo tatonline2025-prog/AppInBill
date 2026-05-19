@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, isAxiosError } from "axios";
 import Constants from "expo-constants";
 
 const BASE_URL = Constants.expoConfig?.extra?.appBill;
@@ -17,7 +17,7 @@ export const changePassword = async (oldPassword: string, newPassword: string) =
     );
     return res;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (isAxiosError(error)) {
       const status = error.response?.status;
       const serverMessage = error.response?.data?.message;
       if (status === 401) throw new Error("Mật khẩu cũ không đúng");
@@ -56,7 +56,7 @@ export const updateCollectionFee = async (userId: string, fee: number) => {
 
     return res;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (isAxiosError(error)) {
       const axiosError = error as AxiosError<any>;
       const status = axiosError.response?.status;
       const serverMessage = axiosError.response?.data?.message;

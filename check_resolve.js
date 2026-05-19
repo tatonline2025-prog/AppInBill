@@ -1,8 +1,6 @@
 const rnPath = require.resolve('react-native/package.json');
-const rnDir = require('path').dirname(rnPath);
 
 const expoPath = require.resolve('expo/package.json');
-const expoDir = require('path').dirname(expoPath);
 
 const expoModulesPath = require.resolve('expo-modules-autolinking/package.json', { paths: [expoPath] });
 

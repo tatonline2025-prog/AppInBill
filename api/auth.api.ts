@@ -1,6 +1,6 @@
 import { API_TIMEOUT, BASE_URL } from "@/config";
 import { IUserResponse } from "@/types/user";
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, isAxiosError } from "axios";
 
 // ✅ Sử dụng BASE_URL từ file config chung
 
@@ -19,7 +19,7 @@ export const login = async (userName: string, password: string) => {
 
     return res;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (isAxiosError(error)) {
       const axiosError = error as AxiosError;
       
       if (axiosError.response) {

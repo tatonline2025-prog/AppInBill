@@ -1,7 +1,7 @@
 // --- File: hooks/useInvoiceLayout.ts ---
 import { getInvoiceLayout } from "@/api/invoicelayout.api";
 import { DEFAULT_INVOICE_LAYOUT, InvoiceLayoutItem } from "@/types/invoice-layout";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /**
  * Hook để tải và quản lý layout hóa đơn dựa trên templateType
@@ -11,7 +11,7 @@ export const useInvoiceLayout = (templateType: string) => {
   const [invoiceLayout, setInvoiceLayout] = useState<InvoiceLayoutItem[]>(DEFAULT_INVOICE_LAYOUT);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchLayout = async () => {
+  const fetchLayout = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await getInvoiceLayout();
@@ -28,11 +28,11 @@ export const useInvoiceLayout = (templateType: string) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [templateType]);
 
   useEffect(() => {
     fetchLayout();
-  }, [templateType]); // Tải lại nếu templateType thay đổi
+  }, [fetchLayout]); // Tải lại nếu templateType thay đổi
 
   return { invoiceLayout, isLoading, refetchLayout: fetchLayout };
 };

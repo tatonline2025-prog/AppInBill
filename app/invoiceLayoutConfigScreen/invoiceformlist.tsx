@@ -272,7 +272,7 @@ export default function InvoiceLayoutScreen() {
 
                 {layout && !templateType.toLowerCase().includes("biên nhận") && !templateType.toLowerCase().includes("thông báo") && (
                   <Text style={{ color: "#888", padding: 20 }}>
-                    Không nhận dạng được mẫu: "{templateType}"
+                    Không nhận dạng được mẫu: &quot;{templateType}&quot;
                   </Text>
                 )}
               </View>

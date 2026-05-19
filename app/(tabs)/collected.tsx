@@ -156,15 +156,12 @@ export default function Collected() {
     resetAll,
     handleTextChange,
     handleTypeChange,
-    currentPage,
-    totalPages,
-    isLoadingMore,
     totalInvoices,
     totalAmount,
   } = useCollectedManager(user);
 
   const [invoiceLayout, setInvoiceLayout] = useState<InvoiceLayoutItem[] | null>(null);
-  const [isLayoutLoading, setIsLayoutLoading] = useState(true);
+  const [, setIsLayoutLoading] = useState(true);
 
   const viewShotRef = useRef<ViewShot>(null);
   const { handlePrintInvoice, printerModalProps, isLayoutVisible, isPrinting, paperWidthPx, cancelPrint } = useInvoicePrinter(
@@ -175,6 +172,7 @@ export default function Collected() {
   // --- Local State ---
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const hasTriggeredInitialSearch = useRef(false);
 
   // --- Effects ---
   useEffect(() => {
@@ -199,10 +197,11 @@ export default function Collected() {
   
   // Load initial data when user logs in (only once)
   useEffect(() => {
-    if (user && searchText) {
+    if (user && searchText && !hasTriggeredInitialSearch.current) {
+      hasTriggeredInitialSearch.current = true;
       searchByText();
     }
-  }, [user]);
+  }, [user, searchText, searchByText]);
 
   const fetchLayout = async () => {
     try {

@@ -48,7 +48,7 @@ export const generateBillImage = async (ref: any, timeoutMs: number = 5000): Pro
     ]);
 
   try {
-    const strategies: Array<() => Promise<string>> = [];
+    const strategies: (() => Promise<string>)[] = [];
 
     if (typeof viewShotRef.capture === "function") {
       strategies.push(captureByViewShot);

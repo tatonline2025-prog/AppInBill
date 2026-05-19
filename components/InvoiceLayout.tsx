@@ -1,4 +1,4 @@
-﻿// src/components/InvoiceLayouts.tsx
+// src/components/InvoiceLayouts.tsx
 import { InvoiceInfo } from "@/types/invoice";
 import React, { ForwardedRef, JSX } from "react";
 import { View } from "react-native";

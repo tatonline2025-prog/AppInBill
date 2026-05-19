@@ -7,7 +7,7 @@ import { showMessage } from "react-native-flash-message";
 import ViewShot from "react-native-view-shot";
 
 // --- Import API & Component ---
-import { fetch20InvoiceLargest, fetchTop3Stations, handleToggle_API, handleToggleIsPaid_API, updateInvoice } from "@/api/invoice.api";
+import { fetchTop3Stations, handleToggle_API, handleToggleIsPaid_API, updateInvoice } from "@/api/invoice.api";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { DynamicInvoiceLayout, DynamicNotiInvoiceLayout } from "@/components/InvoiceLayout";
 import PrinterModal from "@/components/PrinterModal";
@@ -30,7 +30,6 @@ export default function Uncollected() {
   const { user, loading } = useAuth();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [uncolInvoice, setUnColInvoice] = useState<InvoiceInfo[]>([]);
   const [topStation, setTopStations] = useState<StationSummary[]>([]);
 
   const notiViewShotRef = useRef<ViewShot>(null);
@@ -62,7 +61,6 @@ export default function Uncollected() {
     isLoadingMore,
     // Thêm các biến cho checkbox lọc isPaid
     showPaidFilter,
-    setShowPaidFilter,
     handleTogglePaidFilter,
     isAdmin,
   } = useUncollectedSearch(user);
@@ -80,19 +78,6 @@ export default function Uncollected() {
     }
   }, [loading, user]);
 
-  const fetchUncollectedData = useCallback(async () => {
-    try {
-      const res = await fetch20InvoiceLargest("not_collected");
-
-      // Kiểm tra null/undefined trước khi set data
-      const data = res?.data?.data || [];
-      setUnColInvoice(data);
-    } catch (error) {
-      console.error("Lỗi khi tải dữ liệu:", error);
-      setUnColInvoice([]); // Set empty array on error
-    }
-  }, []);
-
   const fetchTop3StationsByRevenue = useCallback(async () => {
     try {
       const res = await fetchTop3Stations("not_collected");
@@ -109,8 +94,6 @@ export default function Uncollected() {
 
   const handleUpdateInfo = useCallback(
     (updatedInvoice: InvoiceInfo) => {
-      setUnColInvoice((prevList) => prevList.map((item) => (item._id === updatedInvoice._id ? updatedInvoice : item)));
-
       setInvoice(updatedInvoice);
 
       if (isSearch) {
@@ -131,15 +114,14 @@ export default function Uncollected() {
   // Chỉ load dữ liệu một lần khi màn hình được mount
   // Không dùng useFocusEffect vì sẽ gây reload liên tục khi chuyển tab
   useEffect(() => {
-    fetchUncollectedData();
     fetchTop3StationsByRevenue();
-  }, [fetchUncollectedData, fetchTop3StationsByRevenue]);
+  }, [fetchTop3StationsByRevenue]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       // Tải lại cả 2 layout
-      await Promise.all([refetchNoti(), refetchReceipt(), fetchUncollectedData(), fetchTop3StationsByRevenue()]);
+      await Promise.all([refetchNoti(), refetchReceipt(), fetchTop3StationsByRevenue()]);
       resetSearch();
       showMessage({ message: "Đã làm mới dữ liệu", type: "success" });
     } catch (error) {
@@ -147,7 +129,7 @@ export default function Uncollected() {
     } finally {
       setRefreshing(false);
     }
-  }, [refetchNoti, refetchReceipt, resetSearch, fetchUncollectedData, fetchTop3StationsByRevenue]);
+  }, [refetchNoti, refetchReceipt, resetSearch, fetchTop3StationsByRevenue]);
 
   // --- Các hàm xử lý hành động (Action Handlers) ---
   const handleMarkAsCollected = async (selectedInvoice?: InvoiceInfo) => {
@@ -200,9 +182,6 @@ export default function Uncollected() {
           prevList.filter((item) => item._id !== targetInvoice._id)
         );
       }
-
-      // Cập nhật trong danh sách uncolInvoice (danh sách chưa thu)
-      setUnColInvoice((prevList) => prevList.filter((item) => item._id !== targetInvoice._id));
 
       // Cập nhật lại top stations
       fetchTop3StationsByRevenue();
@@ -262,11 +241,6 @@ export default function Uncollected() {
               });
             }
 
-            // Cập nhật trong danh sách uncolInvoice (danh sách chưa thu)
-            setUnColInvoice((prevList) =>
-              prevList.map((item) => (item._id === targetInvoice._id ? updatedInvoice : item))
-            );
-
             // Cập nhật lại top stations
             fetchTop3StationsByRevenue();
           } catch (error: any) {
@@ -317,13 +291,6 @@ export default function Uncollected() {
       console.error("Lỗi in biên nhận:", error);
       Alert.alert("Lỗi", "Không thể in biên nhận.");
     }
-  };
-
-  const invoiceActions = {
-    onMarkCollected: handleMarkAsCollected,
-    onPrint: handlePrintNotification,
-    onPrintInvoice: handlePrintReceipt,
-    onIsPaid: handleIsPaid,
   };
 
   /* ==========================================================

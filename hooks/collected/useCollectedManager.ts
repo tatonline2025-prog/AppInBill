@@ -166,7 +166,6 @@ export const useCollectedManager = (user: IUser | null) => {
           ? serverData.filter((item: InvoiceInfo) => isSameVietnamDate(item.collectionDate as any, activeDate))
           : serverData;
 
-      const totalPagesServer = parsed.totalPages;
       const amount =
         searchType === "station" && activeDate ? sumTotalAmount(filteredData) : parsed.totalAmount || 0;
       const totalInvoicesValue =

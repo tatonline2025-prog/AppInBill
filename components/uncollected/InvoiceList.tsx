@@ -1,4 +1,4 @@
-﻿import { Text } from "@/components/StyledText";
+import { Text } from "@/components/StyledText";
 import { InvoiceInfo } from "@/types/invoice";
 import { Ionicons } from "@expo/vector-icons";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -87,11 +87,6 @@ const InvoiceItem = memo(
     const handleMarkCollected = (e: any) => {
       e.stopPropagation();
       actions.onMarkCollected(item);
-    };
-
-    const handleIsPaid = (e: any) => {
-      e.stopPropagation();
-      actions.onIsPaid(item);
     };
 
     // Hiện full mã khách hàng

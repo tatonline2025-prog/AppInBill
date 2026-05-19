@@ -1,4 +1,4 @@
-﻿import { quickAddInvoice } from "@/api/invoice.api";
+import { quickAddInvoice } from "@/api/invoice.api";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
