@@ -5,7 +5,7 @@ export default {
     owner: "tatcoltd",
     name: "T.A.T In Bill",
     slug: "InBillApp",
-    version: "1.8.2",
+    version: "1.8.3",
     orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "inbillapp",
@@ -15,13 +15,13 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.vodang.InBillApp",
-      buildNumber: "2",
+      buildNumber: "3",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
     },
     android: {
-      versionCode: 47,
+      versionCode: 48,
       minSdkVersion: 24,
       ndkVersion: "27.1.12297006",
       enableProguardInReleaseBuilds: true,

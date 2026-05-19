@@ -1,0 +1,86 @@
+name: EAS One-Click Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: EAS build profile
+        required: true
+        default: preview
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+          - release
+      platform:
+        description: Platform to build
+        required: true
+        default: android
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+      wait_for_build:
+        description: Wait until EAS build finishes
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    name: Trigger EAS build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve wait flag
+        id: wait-flag
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.wait_for_build }}" = "true" ]; then
+            echo "value=" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=--no-wait" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger EAS build
+        env:
+          EAS_NO_VCS: 1
+        run: >-
+          eas build
+          --platform ${{ github.event.inputs.platform }}
+          --profile ${{ github.event.inputs.profile }}
+          --non-interactive
+          ${{ steps.wait-flag.outputs.value }}
+
+      - name: Build summary
+        run: |
+          echo "### EAS build triggered" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Profile: ${{ github.event.inputs.profile }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Platform: ${{ github.event.inputs.platform }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Wait for build: ${{ github.event.inputs.wait_for_build }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Expo project: https://expo.dev/accounts/tatcoltd/projects/InBillApp" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "This workflow is manual-only via GitHub Actions workflow_dispatch." >> "$GITHUB_STEP_SUMMARY"
