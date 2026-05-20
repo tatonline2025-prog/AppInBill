@@ -7,7 +7,6 @@ import { useFont } from "@/context/FontContext";
 import { useInvoices } from "@/context/InvoiceContext";
 import { usePrinterSettings } from "@/hooks/usePrinterSettings";
 import { InvoiceLayoutItem } from "@/types/invoice-layout";
-import { toVietnamISOString } from "@/utils/vnTimezone";
 import { MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import Constants from "expo-constants";
@@ -19,25 +18,18 @@ import { GestureHandlerRootView, TextInput } from "react-native-gesture-handler"
 import ViewShot from "react-native-view-shot";
 
 const sampleInvoice = {
-  invoiceNumber: "PA25001234567", // Mã KH
+  invoiceNumber: "PA25001234567",
   customerName: "Nguyễn Văn A",
   customerAddress: "Ấp Bình Lợi, Xã Bình Thạnh, Lấp Vò",
   customerPhone: "0909.123.456",
   recordBookCode: "K09X-XXXX",
-
   billing_period: "10/2025",
-  dateRange: "15/09/2025 - 14/10/2025",
-
-  electricityCost: 450000,
-  taxAmount: 45000,
   totalAmount: 495000,
-
   assignedTo: {
     fullName: "Tên Nhân Viên",
     phone: "09xxxx",
     collectionFee: 3000,
   },
-  createdAt: toVietnamISOString(),
 };
 
 const defaultLayout: InvoiceLayoutItem[] = [
@@ -183,6 +175,7 @@ export default function ProfileScreen() {
           <View style={[styles.infoRow, { marginBottom: -3 }]}>
             <Text>Phiên bản ứng dụng:</Text>
             <Text>{version} - 04/05/2026</Text>
+            <Text>{version} - 20/05/2026</Text>
 
           </View>
         </View>

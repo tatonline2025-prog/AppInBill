@@ -40,7 +40,6 @@ const sampleInvoice = {
   currentAmount: 150000,
   previousAmount: 100000,
   totalAmount: 250000,
-  collectionFee: 10000,
   assignedTo: {
     fullName: "Trần Thị B",
     phone: "0909123456",
@@ -66,10 +65,15 @@ export default function InvoiceLayoutScreen() {
         const data = await getInvoiceLayout();
         if (!data) return;
 
+        const normalizedData = data.map((form: InvoiceLayout) => ({
+          ...form,
+          layout: form.layout ?? [],
+        }));
+
         // Với mỗi form, nếu user có layout riêng trong AsyncStorage thì merge vào
         if (user?._id) {
           const merged = await Promise.all(
-            data.map(async (form: InvoiceLayout) => {
+            normalizedData.map(async (form: InvoiceLayout) => {
               const saved = await getUserLayoutLocal(user._id, form.templateType);
               if (saved) {
                 // Ghép: dùng cấu trúc từ backend nhưng apply label/visible từ bản lưu của user
@@ -85,7 +89,7 @@ export default function InvoiceLayoutScreen() {
           );
           setForms(merged);
         } else {
-          setForms(data);
+          setForms(normalizedData);
         }
       } catch (error) {
         console.error("Lỗi khi lấy layout:", error);
@@ -142,22 +146,22 @@ export default function InvoiceLayoutScreen() {
 
   const renderItem = ({ item }: { item: InvoiceLayout }) => {
     const isExpanded = expandedId === item._id;
-    const headerLabel = item.layout.find((f) => f.id === "header")?.label || "Mẫu hoá đơn";
+    const headerLabel = item.layout?.find((f) => f.id === "header")?.label || "Mẫu hoá đơn";
 
     return (
       <View style={styles.card}>
         <TouchableOpacity onPress={() => toggleExpand(item._id)}>
           <Text style={styles.header}>{headerLabel}</Text>
           <Text style={styles.sub}>Cập nhật: {new Date(item.updatedAt).toLocaleString("vi-VN")}</Text>
-          {item.lastEditedBy?.username && <Text style={styles.sub}>Người sửa: {item.lastEditedBy.username}</Text>}
+          {item.lastEditedBy?.username ? <Text style={styles.sub}>Người sửa: {item.lastEditedBy.username}</Text> : null}
         </TouchableOpacity>
 
         {isExpanded && (
-          <ScrollView style={styles.detailContainer}>
+          <View style={styles.detailContainer}>
             <Text style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>
               * Bật/tắt để ẩn/hiện khi in. Sửa nhãn để đổi tên hiển thị.
             </Text>
-            {item.layout.map((f) => (
+            {item.layout?.map((f) => (
               <View key={f.id} style={[styles.fieldRow, { opacity: f.visible ? 1 : 0.45 }]}>
                 <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
                   <TouchableOpacity
@@ -177,7 +181,7 @@ export default function InvoiceLayoutScreen() {
                 </View>
                 <TextInput
                   style={[styles.input, !f.visible && { color: "#aaa" }]}
-                  value={f.label}
+                  value={f.label ?? ""}
                   onChangeText={(text) => updateLabel(item._id, f.id, text)}
                   editable={f.visible}
                 />
@@ -200,7 +204,7 @@ export default function InvoiceLayoutScreen() {
                 <Text style={styles.saveButtonText}>Lưu</Text>
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </View>
         )}
       </View>
     );
